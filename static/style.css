@@ -1,0 +1,18 @@
+body {
+    background-color: #f5f6f8;
+}
+
+.file-path {
+    max-width: 420px;
+    font-family: monospace;
+    font-size: 0.8rem;
+}
+
+.table {
+    font-size: 0.875rem;
+}
+
+.navbar .nav-link.active {
+    font-weight: 600;
+    color: #fff !important;
+}

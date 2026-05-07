@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<h5 class="mb-3"><i class="bi bi-server me-1"></i>Servers beheren</h5>
+
+<div class="card mb-4" style="max-width: 600px;">
+    <div class="card-header">Server toevoegen</div>
+    <div class="card-body">
+        <form method="post" action="{{ url_for('add_server') }}" class="row g-2">
+            <div class="col-md-5">
+                <input type="text" name="name" class="form-control form-control-sm"
+                       placeholder="Naam (bijv. FileServer01)" required>
+            </div>
+            <div class="col-md-5">
+                <input type="text" name="hostname" class="form-control form-control-sm"
+                       placeholder="Hostname of IP (leeg = lokaal)">
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-sm btn-primary">
+                    <i class="bi bi-plus-lg"></i> Toevoegen
+                </button>
+            </div>
+        </form>
+        <p class="text-muted small mt-2 mb-0">
+            <i class="bi bi-info-circle"></i>
+            Laat hostname leeg voor de lokale server.
+            Remote servers vereisen PowerShell Remoting (<code>Enable-PSRemoting</code>)
+            en beheerdersrechten.
+        </p>
+    </div>
+</div>
+
+<table class="table table-sm table-hover align-middle" style="max-width: 700px;">
+    <thead class="table-dark">
+        <tr>
+            <th>Naam</th>
+            <th>Hostname</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for s in servers %}
+        <tr>
+            <td>{{ s.name }}</td>
+            <td>{{ s.hostname or '<em class="text-muted">lokaal</em>' | safe }}</td>
+            <td>
+                {% if s.is_active %}
+                    <span class="badge bg-success">Actief</span>
+                {% else %}
+                    <span class="badge bg-secondary">Inactief</span>
+                {% endif %}
+            </td>
+            <td class="text-end">
+                <form method="post" action="{{ url_for('toggle_server', server_id=s.id) }}" class="d-inline">
+                    <button class="btn btn-sm btn-outline-secondary">
+                        {% if s.is_active %}Deactiveren{% else %}Activeren{% endif %}
+                    </button>
+                </form>
+                <form method="post" action="{{ url_for('delete_server', server_id=s.id) }}"
+                      class="d-inline"
+                      onsubmit="return confirm('Server \"{{ s.name }}\" verwijderen?')">
+                    <button class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

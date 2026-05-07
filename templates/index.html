@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="d-flex align-items-center mb-3">
+    <h5 class="mb-0"><i class="bi bi-clock-history me-1"></i>Activiteitenlog</h5>
+    <span class="ms-3 text-muted small">{{ entries.total }} resultaten</span>
+</div>
+
+<form method="get" class="row g-2 mb-3">
+    <div class="col-auto">
+        <select name="server" class="form-select form-select-sm">
+            <option value="">Alle servers</option>
+            {% for s in servers %}
+            <option value="{{ s.hostname or 'local' }}"
+                {% if filters.server == (s.hostname or 'local') %}selected{% endif %}>
+                {{ s.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-auto">
+        <input type="text" name="user" class="form-control form-control-sm"
+               placeholder="Gebruiker" value="{{ filters.user }}">
+    </div>
+    <div class="col-auto">
+        <select name="action" class="form-select form-select-sm">
+            <option value="">Alle acties</option>
+            <option value="opened" {% if filters.action == 'opened' %}selected{% endif %}>Geopend</option>
+            <option value="closed" {% if filters.action == 'closed' %}selected{% endif %}>Gesloten</option>
+        </select>
+    </div>
+    <div class="col-auto">
+        <select name="hours" class="form-select form-select-sm">
+            <option value="1"   {% if filters.hours == 1   %}selected{% endif %}>Laatste uur</option>
+            <option value="8"   {% if filters.hours == 8   %}selected{% endif %}>Laatste 8 uur</option>
+            <option value="24"  {% if filters.hours == 24  %}selected{% endif %}>Laatste 24 uur</option>
+            <option value="168" {% if filters.hours == 168 %}selected{% endif %}>Laatste week</option>
+        </select>
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-sm btn-primary">Filteren</button>
+        <a href="{{ url_for('index') }}" class="btn btn-sm btn-outline-secondary">Reset</a>
+    </div>
+</form>
+
+<div class="table-responsive">
+    <table class="table table-sm table-hover table-striped align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th class="text-nowrap">Tijdstip</th>
+                <th>Server</th>
+                <th>Gebruiker</th>
+                <th>Bestand</th>
+                <th>Actie</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in entries.items %}
+            <tr>
+                <td class="text-nowrap small text-muted">
+                    {{ entry.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
+                </td>
+                <td>{{ entry.server }}</td>
+                <td>{{ entry.username }}</td>
+                <td class="text-truncate file-path" title="{{ entry.file_path }}">
+                    {{ entry.file_path }}
+                </td>
+                <td>
+                    {% if entry.action == 'opened' %}
+                        <span class="badge bg-success">Geopend</span>
+                    {% else %}
+                        <span class="badge bg-secondary">Gesloten</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" class="text-center text-muted py-4">
+                    <i class="bi bi-inbox fs-4 d-block mb-1"></i>
+                    Geen activiteit gevonden voor de geselecteerde filters
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if entries.pages > 1 %}
+<nav>
+    <ul class="pagination pagination-sm">
+        {% if entries.has_prev %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('index', page=entries.prev_num,
+                server=filters.server, user=filters.user,
+                action=filters.action, hours=filters.hours) }}">Vorige</a>
+        </li>
+        {% endif %}
+        <li class="page-item disabled">
+            <span class="page-link">{{ entries.page }} / {{ entries.pages }}</span>
+        </li>
+        {% if entries.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('index', page=entries.next_num,
+                server=filters.server, user=filters.user,
+                action=filters.action, hours=filters.hours) }}">Volgende</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+{% endblock %}
