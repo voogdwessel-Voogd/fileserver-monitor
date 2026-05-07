@@ -1,46 +1,40 @@
 # Run this script as Administrator once to install the app as a scheduled task
 # The task runs as SYSTEM (full admin rights) and starts on boot
 
-$taskName = "FileServerMonitor"
-$pythonPath = (Get-Command py).Source
-$appPath = "C:\Claude\FileServer-Monitor\app.py"
-$workDir = "C:\Claude\FileServer-Monitor"
+$log = "C:\Claude\FileServer-Monitor\install.log"
+Start-Transcript -Path $log -Force
 
-# Remove existing task if present
+$taskName  = "FileServerMonitor"
+$pythonPath = "C:\Claude\FileServer-Monitor\venv\Scripts\python.exe"
+$appPath   = "C:\Claude\FileServer-Monitor\app.py"
+$workDir   = "C:\Claude\FileServer-Monitor"
+
+Write-Host "Checking python: $pythonPath"
+if (-not (Test-Path $pythonPath)) { Write-Error "Python not found at $pythonPath"; Stop-Transcript; exit 1 }
+
+Write-Host "Removing existing task (if any)..."
 Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue
 
-$action = New-ScheduledTaskAction `
-    -Execute $pythonPath `
-    -Argument $appPath `
-    -WorkingDirectory $workDir
+Write-Host "Creating task action..."
+$action = New-ScheduledTaskAction -Execute $pythonPath -Argument $appPath -WorkingDirectory $workDir
 
+Write-Host "Creating trigger..."
 $trigger = New-ScheduledTaskTrigger -AtStartup
 
-$settings = New-ScheduledTaskSettingsSet `
-    -RestartCount 3 `
-    -RestartInterval (New-TimeSpan -Minutes 1) `
-    -ExecutionTimeLimit ([TimeSpan]::Zero)
+Write-Host "Creating settings..."
+$settings = New-ScheduledTaskSettingsSet -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit ([TimeSpan]::Zero)
 
-$principal = New-ScheduledTaskPrincipal `
-    -UserId "SYSTEM" `
-    -LogonType ServiceAccount `
-    -RunLevel Highest
+Write-Host "Creating principal (SYSTEM)..."
+$principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
 
-Register-ScheduledTask `
-    -TaskName $taskName `
-    -Action $action `
-    -Trigger $trigger `
-    -Settings $settings `
-    -Principal $principal `
-    -Description "File Server Monitor - tracks who opens SMB files" | Out-Null
+Write-Host "Registering task..."
+Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Description "File Server Monitor"
 
-# Start immediately
+Write-Host "Starting task..."
 Start-ScheduledTask -TaskName $taskName
 
-Write-Host "Installed and started '$taskName' as SYSTEM service." -ForegroundColor Green
-Write-Host "App runs at http://localhost:5000" -ForegroundColor Cyan
-Write-Host ""
-Write-Host "Other commands:"
-Write-Host "  Stop:    Stop-ScheduledTask -TaskName $taskName"
-Write-Host "  Start:   Start-ScheduledTask -TaskName $taskName"
-Write-Host "  Remove:  Unregister-ScheduledTask -TaskName $taskName -Confirm:`$false"
+Start-Sleep -Seconds 3
+$state = (Get-ScheduledTask -TaskName $taskName).State
+Write-Host "Task state: $state" -ForegroundColor Cyan
+
+Stop-Transcript
