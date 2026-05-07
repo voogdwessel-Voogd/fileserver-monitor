@@ -30,7 +30,7 @@ class SmbMonitor:
             text=True,
             timeout=30,
         )
-        return result.stdout.strip(), result.returncode
+        return result.stdout.strip(), result.stderr.strip(), result.returncode
 
     def get_open_files(self, hostname=None):
         cmd = (
@@ -38,9 +38,11 @@ class SmbMonitor:
             'Select-Object FileId, ClientUserName, Path, ShareRelativePath | '
             'ConvertTo-Json -Depth 3'
         )
-        output, code = self._run_powershell(cmd, hostname)
+        output, stderr, code = self._run_powershell(cmd, hostname)
 
         if code != 0 or not output:
+            if stderr:
+                logger.error(f'PowerShell error (code {code}): {stderr[:500]}')
             return []
 
         try:

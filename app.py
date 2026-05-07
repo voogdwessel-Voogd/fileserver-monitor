@@ -88,7 +88,7 @@ def add_server():
 
 @app.route('/servers/<int:server_id>/toggle', methods=['POST'])
 def toggle_server(server_id):
-    server = ServerConfig.query.get_or_404(server_id)
+    server = db.get_or_404(ServerConfig, server_id)
     server.is_active = not server.is_active
     db.session.commit()
     return redirect(url_for('servers'))
@@ -96,7 +96,7 @@ def toggle_server(server_id):
 
 @app.route('/servers/<int:server_id>/delete', methods=['POST'])
 def delete_server(server_id):
-    server = ServerConfig.query.get_or_404(server_id)
+    server = db.get_or_404(ServerConfig, server_id)
     name = server.name
     db.session.delete(server)
     db.session.commit()

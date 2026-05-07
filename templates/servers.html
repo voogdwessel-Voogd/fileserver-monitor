@@ -43,7 +43,7 @@
         {% for s in servers %}
         <tr>
             <td>{{ s.name }}</td>
-            <td>{{ s.hostname or '<em class="text-muted">lokaal</em>' | safe }}</td>
+            <td>{% if s.hostname %}{{ s.hostname }}{% else %}<em class="text-muted">lokaal</em>{% endif %}</td>
             <td>
                 {% if s.is_active %}
                     <span class="badge bg-success">Actief</span>
