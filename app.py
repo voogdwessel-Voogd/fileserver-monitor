@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from datetime import datetime, timedelta
 
 from config import Config
-from db import db, FileAccess, ServerConfig, AccountFilter
+from db import db, FileAccess, ServerConfig, AccountFilter, AppSetting, get_setting
 from monitor import EventLogMonitor
 
 app = Flask(__name__)
@@ -100,6 +100,42 @@ def delete_server(server_id):
     db.session.commit()
     flash(f'Server "{name}" verwijderd', 'success')
     return redirect(url_for('servers'))
+
+
+@app.route('/settings')
+def settings_page():
+    current = {
+        'POLL_INTERVAL': get_setting('POLL_INTERVAL', Config.POLL_INTERVAL),
+        'RETENTION_DAYS': get_setting('RETENTION_DAYS', Config.RETENTION_DAYS),
+    }
+    return render_template('settings.html', settings=current)
+
+
+@app.route('/settings/update', methods=['POST'])
+def update_settings():
+    errors = []
+    for key, label, min_val in [
+        ('POLL_INTERVAL', 'Poll interval', 5),
+        ('RETENTION_DAYS', 'Bewaarperiode', 0),
+    ]:
+        raw = request.form.get(key, '').strip()
+        if not raw:
+            continue
+        if not raw.isdigit() or int(raw) < min_val:
+            errors.append(f'{label} moet een geheel getal zijn van minimaal {min_val}.')
+            continue
+        s = db.session.get(AppSetting, key)
+        if s:
+            s.value = raw
+        else:
+            db.session.add(AppSetting(key=key, value=raw))
+    if errors:
+        for e in errors:
+            flash(e, 'error')
+    else:
+        db.session.commit()
+        flash('Instellingen opgeslagen', 'success')
+    return redirect(url_for('settings_page'))
 
 
 @app.route('/accounts')

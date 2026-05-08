@@ -27,6 +27,9 @@
                 <a class="nav-link {% if request.endpoint == 'accounts' %}active{% endif %}" href="{{ url_for('accounts') }}">
                     <i class="bi bi-person-check"></i> Accounts
                 </a>
+                <a class="nav-link {% if request.endpoint == 'settings_page' %}active{% endif %}" href="{{ url_for('settings_page') }}">
+                    <i class="bi bi-gear"></i> Instellingen
+                </a>
             </div>
         </div>
     </nav>

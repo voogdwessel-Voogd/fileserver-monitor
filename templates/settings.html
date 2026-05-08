@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<h5 class="mb-4"><i class="bi bi-gear me-1"></i>Instellingen</h5>
+
+<form method="post" action="{{ url_for('update_settings') }}" style="max-width: 500px;">
+    <div class="mb-4">
+        <label class="form-label fw-semibold">Poll interval
+            <span class="text-muted fw-normal small">(seconden)</span>
+        </label>
+        <input type="number" name="POLL_INTERVAL" class="form-control"
+               value="{{ settings.POLL_INTERVAL }}" min="5" step="5" required>
+        <div class="form-text">Hoe vaak de monitor het Windows Event Log raadpleegt. Standaard: 30 seconden.</div>
+    </div>
+
+    <div class="mb-4">
+        <label class="form-label fw-semibold">Bewaarperiode
+            <span class="text-muted fw-normal small">(dagen)</span>
+        </label>
+        <input type="number" name="RETENTION_DAYS" class="form-control"
+               value="{{ settings.RETENTION_DAYS }}" min="0" required>
+        <div class="form-text">
+            Aantal dagen dat logregels bewaard worden. Stel in op <code>0</code> om nooit automatisch te verwijderen.
+            Standaard: 365 dagen.
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary">
+        <i class="bi bi-check-lg me-1"></i>Opslaan
+    </button>
+</form>
+
+{% endblock %}

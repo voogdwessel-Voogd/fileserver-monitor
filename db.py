@@ -16,6 +16,18 @@ class FileAccess(db.Model):
     action = db.Column(db.String(50))  # 'read', 'write', 'delete', 'other'
 
 
+class AppSetting(db.Model):
+    __tablename__ = 'app_setting'
+
+    key = db.Column(db.String(100), primary_key=True)
+    value = db.Column(db.String(255), nullable=False)
+
+
+def get_setting(key, default=None):
+    s = db.session.get(AppSetting, key)
+    return s.value if s else default
+
+
 class AccountFilter(db.Model):
     __tablename__ = 'account_filter'
 

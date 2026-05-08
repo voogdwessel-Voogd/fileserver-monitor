@@ -156,23 +156,21 @@ class EventLogMonitor:
                 logger.info(f'Stored {len(new_entries)} event(s)')
 
     def _cleanup(self):
-        from db import FileAccess
+        from db import FileAccess, get_setting
         from config import Config
 
-        days = Config.RETENTION_DAYS
-        if not days:
-            return
-        cutoff = datetime.utcnow() - timedelta(days=days)
         with self.app.app_context():
+            days = int(get_setting('RETENTION_DAYS', Config.RETENTION_DAYS))
+            if not days:
+                return
+            cutoff = datetime.utcnow() - timedelta(days=days)
             deleted = FileAccess.query.filter(FileAccess.timestamp < cutoff).delete()
             self.db.session.commit()
-        if deleted:
-            logger.info(f'Retention cleanup: {deleted} record(s) ouder dan {days} dagen verwijderd')
+            if deleted:
+                logger.info(f'Retention cleanup: {deleted} record(s) ouder dan {days} dagen verwijderd')
 
     def _loop(self):
         from config import Config
-
-        interval = Config.POLL_INTERVAL
 
         while self._running:
             try:
@@ -186,6 +184,10 @@ class EventLogMonitor:
                 except Exception as e:
                     logger.error(f'Cleanup error: {e}')
                 self._last_cleanup = datetime.utcnow()
+
+            with self.app.app_context():
+                from db import get_setting
+                interval = int(get_setting('POLL_INTERVAL', Config.POLL_INTERVAL))
 
             for _ in range(interval):
                 if not self._running:
