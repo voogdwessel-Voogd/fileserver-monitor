@@ -103,6 +103,7 @@ class EventLogMonitor:
             "UN=($d|Where-Object{$_.Name -eq 'SubjectUserName'}).'#text';"
             "DN=($d|Where-Object{$_.Name -eq 'SubjectDomainName'}).'#text';"
             "ON=($d|Where-Object{$_.Name -eq 'ObjectName'}).'#text';"
+            "OT=($d|Where-Object{$_.Name -eq 'ObjectType'}).'#text';"
             "AM=($d|Where-Object{$_.Name -eq 'AccessMask'}).'#text';"
             "PN=($d|Where-Object{$_.Name -eq 'ProcessName'}).'#text'"
             "}}|ConvertTo-Json -Depth 3}"
@@ -147,6 +148,9 @@ class EventLogMonitor:
 
             new_entries = []
             for ev in events:
+                if (ev.get('OT') or '').lower() != 'file':
+                    continue
+
                 user = ev.get('UN') or ''
                 obj = _nt_to_dos(ev.get('ON') or '', vol_map)
 
