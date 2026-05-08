@@ -40,7 +40,7 @@ De app heeft vier schermen bereikbaar via de navigatiebalk:
 
 ### Activiteitenlog
 
-- Filteren op gebruiker, actie (lezen / schrijven / verwijderen) en tijdsperiode
+- Toont alle gelogde bestandstoegang, gesorteerd op tijdstip (nieuwste eerst)
 - **Scherm wissen** — verbergt alle bestaande logregels in de weergave zonder ze uit de database te verwijderen. Handig na het instellen van nieuwe filters zodat alleen nieuwe activiteit zichtbaar is.
 
 ### Instellingen
