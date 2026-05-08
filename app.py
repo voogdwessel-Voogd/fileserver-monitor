@@ -53,17 +53,13 @@ def index():
 
     total = query.count()
 
-    # Deduplicate: one entry per (username, file_path) — keep most recent
+    # Deduplicate: one entry per (username, file_path) — keep record with highest id
     subq = (query.with_entities(
-        FileAccess.username,
-        FileAccess.file_path,
-        func.max(FileAccess.timestamp).label('max_ts'),
+        func.max(FileAccess.id).label('max_id'),
     ).group_by(FileAccess.username, FileAccess.file_path).subquery())
 
     entries = (db.session.query(FileAccess)
-               .join(subq, (FileAccess.username == subq.c.username) &
-                           (FileAccess.file_path == subq.c.file_path) &
-                           (FileAccess.timestamp == subq.c.max_ts))
+               .filter(FileAccess.id.in_(db.session.query(subq.c.max_id)))
                .order_by(FileAccess.username, FileAccess.timestamp.desc())
                .limit(1000).all())
 
