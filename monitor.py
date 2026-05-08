@@ -3,6 +3,7 @@ import json
 import threading
 import time
 import logging
+import fnmatch
 from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
@@ -33,6 +34,11 @@ def _parse_action(mask_hex):
     if mask & 0x1:     # ReadData
         return 'read'
     return 'other'
+
+
+def _matches_account(username, patterns):
+    u = username.lower()
+    return any(fnmatch.fnmatch(u, p.lower()) for p in patterns)
 
 
 def _is_noisy(username, obj_name):
@@ -95,7 +101,7 @@ class EventLogMonitor:
             return []
 
     def _poll(self):
-        from db import FileAccess
+        from db import FileAccess, AccountFilter
 
         since = self._last_poll_time
         now = datetime.utcnow()
@@ -111,38 +117,43 @@ class EventLogMonitor:
         if not events:
             return
 
-        new_entries = []
-        for ev in events:
-            user = ev.get('UN') or ''
-            obj = ev.get('ON') or ''
+        with self.app.app_context():
+            patterns = [f.pattern for f in AccountFilter.query.filter_by(is_active=True).all()]
 
-            if _is_noisy(user, obj):
-                continue
+            new_entries = []
+            for ev in events:
+                user = ev.get('UN') or ''
+                obj = ev.get('ON') or ''
 
-            domain = ev.get('DN') or ''
-            username = f'{domain}\\{user}' if domain else user
+                if _is_noisy(user, obj):
+                    continue
 
-            ts_raw = (ev.get('TC') or '')[:19]  # YYYY-MM-DDTHH:MM:SS
-            try:
-                ts = datetime.fromisoformat(ts_raw)
-            except (ValueError, TypeError):
-                ts = now
+                domain = ev.get('DN') or ''
+                username = f'{domain}\\{user}' if domain else user
 
-            new_entries.append(FileAccess(
-                timestamp=ts,
-                server='local',
-                username=username,
-                file_path=obj,
-                process_name=ev.get('PN') or '',
-                action=_parse_action(ev.get('AM') or ''),
-            ))
+                if patterns and not _matches_account(username, patterns):
+                    continue
 
-        if new_entries:
-            with self.app.app_context():
+                ts_raw = (ev.get('TC') or '')[:19]  # YYYY-MM-DDTHH:MM:SS
+                try:
+                    ts = datetime.fromisoformat(ts_raw)
+                except (ValueError, TypeError):
+                    ts = now
+
+                new_entries.append(FileAccess(
+                    timestamp=ts,
+                    server='local',
+                    username=username,
+                    file_path=obj,
+                    process_name=ev.get('PN') or '',
+                    action=_parse_action(ev.get('AM') or ''),
+                ))
+
+            if new_entries:
                 for entry in new_entries:
                     self.db.session.add(entry)
                 self.db.session.commit()
-            logger.info(f'Stored {len(new_entries)} event(s)')
+                logger.info(f'Stored {len(new_entries)} event(s)')
 
     def _cleanup(self):
         from db import FileAccess

@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from datetime import datetime, timedelta
 
 from config import Config
-from db import db, FileAccess, ServerConfig
+from db import db, FileAccess, ServerConfig, AccountFilter
 from monitor import EventLogMonitor
 
 app = Flask(__name__)
@@ -100,6 +100,42 @@ def delete_server(server_id):
     db.session.commit()
     flash(f'Server "{name}" verwijderd', 'success')
     return redirect(url_for('servers'))
+
+
+@app.route('/accounts')
+def accounts():
+    all_filters = AccountFilter.query.all()
+    return render_template('accounts.html', filters=all_filters)
+
+
+@app.route('/accounts/add', methods=['POST'])
+def add_account_filter():
+    pattern = request.form.get('pattern', '').strip()
+    if not pattern:
+        flash('Patroon is verplicht', 'error')
+        return redirect(url_for('accounts'))
+    db.session.add(AccountFilter(pattern=pattern))
+    db.session.commit()
+    flash(f'Patroon "{pattern}" toegevoegd', 'success')
+    return redirect(url_for('accounts'))
+
+
+@app.route('/accounts/<int:filter_id>/toggle', methods=['POST'])
+def toggle_account_filter(filter_id):
+    f = db.get_or_404(AccountFilter, filter_id)
+    f.is_active = not f.is_active
+    db.session.commit()
+    return redirect(url_for('accounts'))
+
+
+@app.route('/accounts/<int:filter_id>/delete', methods=['POST'])
+def delete_account_filter(filter_id):
+    f = db.get_or_404(AccountFilter, filter_id)
+    pattern = f.pattern
+    db.session.delete(f)
+    db.session.commit()
+    flash(f'Patroon "{pattern}" verwijderd', 'success')
+    return redirect(url_for('accounts'))
 
 
 with app.app_context():

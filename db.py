@@ -16,6 +16,15 @@ class FileAccess(db.Model):
     action = db.Column(db.String(50))  # 'read', 'write', 'delete', 'other'
 
 
+class AccountFilter(db.Model):
+    __tablename__ = 'account_filter'
+
+    id = db.Column(db.Integer, primary_key=True)
+    pattern = db.Column(db.String(255), nullable=False)  # e.g. DOMEIN\* or *\jan*
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
 class ServerConfig(db.Model):
     __tablename__ = 'server_config'
 

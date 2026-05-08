@@ -24,6 +24,9 @@
                 <a class="nav-link {% if request.endpoint == 'servers' %}active{% endif %}" href="{{ url_for('servers') }}">
                     <i class="bi bi-server"></i> Servers
                 </a>
+                <a class="nav-link {% if request.endpoint == 'accounts' %}active{% endif %}" href="{{ url_for('accounts') }}">
+                    <i class="bi bi-person-check"></i> Accounts
+                </a>
             </div>
         </div>
     </nav>
