@@ -8,25 +8,16 @@
 
 <form method="get" class="row g-2 mb-3">
     <div class="col-auto">
-        <select name="server" class="form-select form-select-sm">
-            <option value="">Alle servers</option>
-            {% for s in servers %}
-            <option value="{{ s.hostname or 'local' }}"
-                {% if filters.server == (s.hostname or 'local') %}selected{% endif %}>
-                {{ s.name }}
-            </option>
-            {% endfor %}
-        </select>
-    </div>
-    <div class="col-auto">
         <input type="text" name="user" class="form-control form-control-sm"
                placeholder="Gebruiker" value="{{ filters.user }}">
     </div>
     <div class="col-auto">
         <select name="action" class="form-select form-select-sm">
             <option value="">Alle acties</option>
-            <option value="opened" {% if filters.action == 'opened' %}selected{% endif %}>Geopend</option>
-            <option value="closed" {% if filters.action == 'closed' %}selected{% endif %}>Gesloten</option>
+            <option value="read"   {% if filters.action == 'read'   %}selected{% endif %}>Lezen</option>
+            <option value="write"  {% if filters.action == 'write'  %}selected{% endif %}>Schrijven</option>
+            <option value="delete" {% if filters.action == 'delete' %}selected{% endif %}>Verwijderen</option>
+            <option value="other"  {% if filters.action == 'other'  %}selected{% endif %}>Overig</option>
         </select>
     </div>
     <div class="col-auto">
@@ -48,9 +39,9 @@
         <thead class="table-dark">
             <tr>
                 <th class="text-nowrap">Tijdstip</th>
-                <th>Server</th>
                 <th>Gebruiker</th>
                 <th>Bestand</th>
+                <th>Proces</th>
                 <th>Actie</th>
             </tr>
         </thead>
@@ -60,16 +51,22 @@
                 <td class="text-nowrap small text-muted">
                     {{ entry.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
                 </td>
-                <td>{{ entry.server }}</td>
                 <td>{{ entry.username }}</td>
                 <td class="text-truncate file-path" title="{{ entry.file_path }}">
                     {{ entry.file_path }}
                 </td>
+                <td class="text-truncate small text-muted" title="{{ entry.process_name }}">
+                    {{ entry.process_name | basename }}
+                </td>
                 <td>
-                    {% if entry.action == 'opened' %}
-                        <span class="badge bg-success">Geopend</span>
+                    {% if entry.action == 'read' %}
+                        <span class="badge bg-info text-dark">Lezen</span>
+                    {% elif entry.action == 'write' %}
+                        <span class="badge bg-warning text-dark">Schrijven</span>
+                    {% elif entry.action == 'delete' %}
+                        <span class="badge bg-danger">Verwijderen</span>
                     {% else %}
-                        <span class="badge bg-secondary">Gesloten</span>
+                        <span class="badge bg-secondary">Overig</span>
                     {% endif %}
                 </td>
             </tr>
@@ -91,8 +88,7 @@
         {% if entries.has_prev %}
         <li class="page-item">
             <a class="page-link" href="{{ url_for('index', page=entries.prev_num,
-                server=filters.server, user=filters.user,
-                action=filters.action, hours=filters.hours) }}">Vorige</a>
+                user=filters.user, action=filters.action, hours=filters.hours) }}">Vorige</a>
         </li>
         {% endif %}
         <li class="page-item disabled">
@@ -101,8 +97,7 @@
         {% if entries.has_next %}
         <li class="page-item">
             <a class="page-link" href="{{ url_for('index', page=entries.next_num,
-                server=filters.server, user=filters.user,
-                action=filters.action, hours=filters.hours) }}">Volgende</a>
+                user=filters.user, action=filters.action, hours=filters.hours) }}">Volgende</a>
         </li>
         {% endif %}
     </ul>

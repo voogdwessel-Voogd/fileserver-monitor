@@ -3,48 +3,87 @@ import json
 import threading
 import time
 import logging
+from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
+_SYSTEM_ACCOUNTS = frozenset({
+    'SYSTEM', 'LOCAL SERVICE', 'NETWORK SERVICE',
+    'DWM-1', 'DWM-2', 'DWM-3',
+    'UMFD-0', 'UMFD-1', 'UMFD-2',
+    'ANONYMOUS LOGON',
+})
 
-class SmbMonitor:
+_NOISY_PATH_PREFIXES = (
+    r'C:\Windows\\',
+    r'C:\ProgramData\Microsoft\\',
+    r'\Device\HarddiskVolume',  # raw device paths
+)
+
+
+def _parse_action(mask_hex):
+    try:
+        mask = int(mask_hex, 16)
+    except (ValueError, TypeError):
+        return 'other'
+    if mask & 0x10000:
+        return 'delete'
+    if mask & 0x106:   # WriteData | AppendData | WriteAttributes
+        return 'write'
+    if mask & 0x1:     # ReadData
+        return 'read'
+    return 'other'
+
+
+def _is_noisy(username, obj_name):
+    if not username or username in _SYSTEM_ACCOUNTS or username.endswith('$'):
+        return True
+    if obj_name:
+        for prefix in _NOISY_PATH_PREFIXES:
+            if obj_name.startswith(prefix):
+                return True
+    return False
+
+
+class EventLogMonitor:
     def __init__(self, app, db):
         self.app = app
         self.db = db
         self._running = False
         self._thread = None
-        self._open_files = {}  # {server_key: {file_id: file_info}}
+        self._last_poll_time = datetime.utcnow() - timedelta(seconds=60)
 
-    def _run_powershell(self, command, hostname=None):
-        if hostname:
-            full_cmd = (
-                f'Invoke-Command -ComputerName {hostname} '
-                f'-ScriptBlock {{ {command} }}'
-            )
-        else:
-            full_cmd = command
-
+    def _run_powershell(self, command):
         result = subprocess.run(
-            ['powershell', '-NonInteractive', '-Command', full_cmd],
+            ['powershell', '-NonInteractive', '-Command', command],
             capture_output=True,
             text=True,
             timeout=30,
         )
         return result.stdout.strip(), result.stderr.strip(), result.returncode
 
-    def get_open_files(self, hostname=None):
+    def get_new_events(self, since_dt):
+        since_str = since_dt.strftime('%Y-%m-%d %H:%M:%S')
         cmd = (
-            'Get-SmbOpenFile | '
-            'Select-Object FileId, ClientUserName, Path, ShareRelativePath | '
-            'ConvertTo-Json -Depth 3'
+            "$ev=Get-WinEvent -FilterHashtable @{LogName='Security';Id=4663;"
+            "StartTime=([DateTime]::ParseExact('" + since_str + "',"
+            "'yyyy-MM-dd HH:mm:ss',$null))} -ErrorAction SilentlyContinue;"
+            "if($ev){$ev|ForEach-Object{"
+            "$x=[xml]$_.ToXml();$d=$x.Event.EventData.Data;"
+            "[PSCustomObject]@{"
+            "TC=$_.TimeCreated.ToUniversalTime().ToString('o');"
+            "UN=($d|Where-Object{$_.Name -eq 'SubjectUserName'}).'#text';"
+            "DN=($d|Where-Object{$_.Name -eq 'SubjectDomainName'}).'#text';"
+            "ON=($d|Where-Object{$_.Name -eq 'ObjectName'}).'#text';"
+            "AM=($d|Where-Object{$_.Name -eq 'AccessMask'}).'#text';"
+            "PN=($d|Where-Object{$_.Name -eq 'ProcessName'}).'#text'"
+            "}}|ConvertTo-Json -Depth 3}"
         )
-        output, stderr, code = self._run_powershell(cmd, hostname)
-
-        if code != 0 or not output:
-            if stderr:
-                logger.error(f'PowerShell error (code {code}): {stderr[:500]}')
+        output, stderr, code = self._run_powershell(cmd)
+        if code != 0 and stderr:
+            logger.error(f'PowerShell error (code {code}): {stderr[:500]}')
+        if not output:
             return []
-
         try:
             data = json.loads(output)
             if isinstance(data, dict):
@@ -54,72 +93,66 @@ class SmbMonitor:
             logger.error(f'Failed to parse PowerShell output: {output[:200]}')
             return []
 
-    def _poll(self, server):
+    def _poll(self):
         from db import FileAccess
 
-        hostname = server.hostname or None
-        server_key = server.hostname or 'local'
+        since = self._last_poll_time
+        now = datetime.utcnow()
 
         try:
-            current_files = self.get_open_files(hostname)
+            events = self.get_new_events(since)
         except Exception as e:
-            logger.error(f'Error polling {server_key}: {e}')
+            logger.error(f'Error polling event log: {e}')
             return
 
-        current_map = {str(f.get('FileId', '')): f for f in current_files}
-        prev_map = self._open_files.get(server_key, {})
+        self._last_poll_time = now
+
+        if not events:
+            return
 
         new_entries = []
+        for ev in events:
+            user = ev.get('UN') or ''
+            obj = ev.get('ON') or ''
 
-        for fid, finfo in current_map.items():
-            if fid not in prev_map:
-                new_entries.append(FileAccess(
-                    server=server_key,
-                    username=finfo.get('ClientUserName', 'Unknown'),
-                    file_path=finfo.get('Path', ''),
-                    share_name=finfo.get('ShareRelativePath', ''),
-                    action='opened',
-                    file_id=fid,
-                ))
+            if _is_noisy(user, obj):
+                continue
 
-        for fid, finfo in prev_map.items():
-            if fid not in current_map:
-                new_entries.append(FileAccess(
-                    server=server_key,
-                    username=finfo.get('ClientUserName', 'Unknown'),
-                    file_path=finfo.get('Path', ''),
-                    share_name=finfo.get('ShareRelativePath', ''),
-                    action='closed',
-                    file_id=fid,
-                ))
+            domain = ev.get('DN') or ''
+            username = f'{domain}\\{user}' if domain else user
+
+            ts_raw = (ev.get('TC') or '')[:19]  # YYYY-MM-DDTHH:MM:SS
+            try:
+                ts = datetime.fromisoformat(ts_raw)
+            except (ValueError, TypeError):
+                ts = now
+
+            new_entries.append(FileAccess(
+                timestamp=ts,
+                server='local',
+                username=username,
+                file_path=obj,
+                process_name=ev.get('PN') or '',
+                action=_parse_action(ev.get('AM') or ''),
+            ))
 
         if new_entries:
             with self.app.app_context():
                 for entry in new_entries:
                     self.db.session.add(entry)
                 self.db.session.commit()
-
-        self._open_files[server_key] = current_map
+            logger.info(f'Stored {len(new_entries)} event(s)')
 
     def _loop(self):
-        from db import ServerConfig
         from config import Config
 
         interval = Config.POLL_INTERVAL
 
         while self._running:
-            with self.app.app_context():
-                servers = ServerConfig.query.filter_by(is_active=True).all()
-
-            for server in servers:
-                if not self._running:
-                    break
-                try:
-                    self._poll(server)
-                except Exception as e:
-                    logger.error(f'Poll error for {server.name}: {e}')
-
-            # Sleep in 1s increments so shutdown is responsive
+            try:
+                self._poll()
+            except Exception as e:
+                logger.error(f'Poll error: {e}')
             for _ in range(interval):
                 if not self._running:
                     break
@@ -130,16 +163,31 @@ class SmbMonitor:
             return
         self._running = True
         self._thread = threading.Thread(
-            target=self._loop, daemon=True, name='smb-monitor'
+            target=self._loop, daemon=True, name='eventlog-monitor'
         )
         self._thread.start()
-        logger.info('SMB monitor started')
+        logger.info('Event log monitor started')
 
     def stop(self):
         self._running = False
         if self._thread:
             self._thread.join(timeout=10)
-        logger.info('SMB monitor stopped')
+        logger.info('Event log monitor stopped')
 
-    def get_current_open(self, server_key='local'):
-        return list(self._open_files.get(server_key, {}).values())
+    def get_recent_events(self, minutes=5):
+        from db import FileAccess
+        since = datetime.utcnow() - timedelta(minutes=minutes)
+        return [
+            {
+                'timestamp': e.timestamp.strftime('%H:%M:%S'),
+                'username': e.username,
+                'file_path': e.file_path,
+                'process_name': e.process_name,
+                'action': e.action,
+            }
+            for e in FileAccess.query
+                .filter(FileAccess.timestamp >= since)
+                .order_by(FileAccess.timestamp.desc())
+                .limit(100)
+                .all()
+        ]

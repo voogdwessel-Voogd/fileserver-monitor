@@ -3,19 +3,25 @@ from datetime import datetime, timedelta
 
 from config import Config
 from db import db, FileAccess, ServerConfig
-from monitor import SmbMonitor
+from monitor import EventLogMonitor
 
 app = Flask(__name__)
 app.config.from_object(Config)
 
 db.init_app(app)
-monitor = SmbMonitor(app, db)
+monitor = EventLogMonitor(app, db)
+
+
+@app.template_filter('basename')
+def basename_filter(path):
+    if not path:
+        return '-'
+    return path.replace('/', '\\').split('\\')[-1]
 
 
 @app.route('/')
 def index():
     page = request.args.get('page', 1, type=int)
-    server_filter = request.args.get('server', '')
     user_filter = request.args.get('user', '')
     action_filter = request.args.get('action', '')
     hours = request.args.get('hours', 24, type=int)
@@ -24,8 +30,6 @@ def index():
     since = datetime.utcnow() - timedelta(hours=hours)
     query = query.filter(FileAccess.timestamp >= since)
 
-    if server_filter:
-        query = query.filter(FileAccess.server == server_filter)
     if user_filter:
         query = query.filter(FileAccess.username.ilike(f'%{user_filter}%'))
     if action_filter:
@@ -34,16 +38,13 @@ def index():
     entries = query.order_by(FileAccess.timestamp.desc()).paginate(
         page=page, per_page=50
     )
-    servers = ServerConfig.query.filter_by(is_active=True).all()
     users = db.session.query(FileAccess.username).distinct().all()
 
     return render_template(
         'index.html',
         entries=entries,
-        servers=servers,
         users=[u[0] for u in users],
         filters={
-            'server': server_filter,
             'user': user_filter,
             'action': action_filter,
             'hours': hours,
@@ -53,15 +54,12 @@ def index():
 
 @app.route('/live')
 def live():
-    servers = ServerConfig.query.filter_by(is_active=True).all()
-    return render_template('live.html', servers=servers)
+    return render_template('live.html')
 
 
 @app.route('/api/live')
 def api_live():
-    server_key = request.args.get('server', 'local')
-    files = monitor.get_current_open(server_key)
-    return jsonify(files)
+    return jsonify(monitor.get_recent_events())
 
 
 @app.route('/servers')

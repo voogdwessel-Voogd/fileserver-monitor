@@ -2,33 +2,24 @@
 {% block content %}
 
 <div class="d-flex align-items-center mb-3">
-    <h5 class="mb-0"><i class="bi bi-activity me-1"></i>Live — momenteel geopende bestanden</h5>
+    <h5 class="mb-0"><i class="bi bi-activity me-1"></i>Live — afgelopen 5 minuten</h5>
     <span class="badge bg-secondary ms-3" id="last-update">Laden...</span>
-    <span class="badge bg-primary ms-2" id="file-count">0 bestanden</span>
-</div>
-
-<div class="row mb-3">
-    <div class="col-auto">
-        <select id="server-select" class="form-select form-select-sm">
-            {% for s in servers %}
-            <option value="{{ s.hostname or 'local' }}">{{ s.name }}</option>
-            {% endfor %}
-        </select>
-    </div>
+    <span class="badge bg-primary ms-2" id="event-count">0 events</span>
 </div>
 
 <div class="table-responsive">
     <table class="table table-sm table-hover table-striped align-middle">
         <thead class="table-dark">
             <tr>
+                <th class="text-nowrap">Tijdstip</th>
                 <th>Gebruiker</th>
                 <th>Bestand</th>
-                <th>Share pad</th>
-                <th>File ID</th>
+                <th>Proces</th>
+                <th>Actie</th>
             </tr>
         </thead>
         <tbody id="live-tbody">
-            <tr><td colspan="4" class="text-center text-muted py-3">Laden...</td></tr>
+            <tr><td colspan="5" class="text-center text-muted py-3">Laden...</td></tr>
         </tbody>
     </table>
 </div>
@@ -37,7 +28,14 @@
 
 {% block scripts %}
 <script>
-function escapeHtml(str) {
+const ACTION_BADGES = {
+    read:   '<span class="badge bg-info text-dark">Lezen</span>',
+    write:  '<span class="badge bg-warning text-dark">Schrijven</span>',
+    delete: '<span class="badge bg-danger">Verwijderen</span>',
+    other:  '<span class="badge bg-secondary">Overig</span>',
+};
+
+function esc(str) {
     if (!str) return '-';
     return String(str)
         .replace(/&/g, '&amp;')
@@ -46,28 +44,34 @@ function escapeHtml(str) {
         .replace(/"/g, '&quot;');
 }
 
+function basename(path) {
+    if (!path) return '-';
+    return esc(path.replace(/\//g, '\\').split('\\').pop());
+}
+
 function refresh() {
-    const server = document.getElementById('server-select').value;
-    fetch('/api/live?server=' + encodeURIComponent(server))
+    fetch('/api/live')
         .then(r => r.json())
         .then(data => {
             const tbody = document.getElementById('live-tbody');
-            const now = new Date().toLocaleTimeString('nl-NL');
-            document.getElementById('last-update').textContent = 'Bijgewerkt: ' + now;
-            document.getElementById('file-count').textContent = data.length + ' bestand(en)';
+            document.getElementById('last-update').textContent =
+                'Bijgewerkt: ' + new Date().toLocaleTimeString('nl-NL');
+            document.getElementById('event-count').textContent =
+                data.length + ' event(s)';
 
             if (!data.length) {
-                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">'
-                    + '<i class="bi bi-inbox fs-4 d-block mb-1"></i>Geen open bestanden</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">'
+                    + '<i class="bi bi-inbox fs-4 d-block mb-1"></i>Geen activiteit</td></tr>';
                 return;
             }
 
-            tbody.innerHTML = data.map(f => `
+            tbody.innerHTML = data.map(e => `
                 <tr>
-                    <td>${escapeHtml(f.ClientUserName)}</td>
-                    <td class="text-truncate file-path" title="${escapeHtml(f.Path)}">${escapeHtml(f.Path)}</td>
-                    <td>${escapeHtml(f.ShareRelativePath)}</td>
-                    <td class="text-muted small">${escapeHtml(f.FileId)}</td>
+                    <td class="text-nowrap small text-muted">${esc(e.timestamp)}</td>
+                    <td>${esc(e.username)}</td>
+                    <td class="text-truncate file-path" title="${esc(e.file_path)}">${esc(e.file_path)}</td>
+                    <td class="small text-muted">${basename(e.process_name)}</td>
+                    <td>${ACTION_BADGES[e.action] || ACTION_BADGES.other}</td>
                 </tr>
             `).join('');
         })
@@ -78,6 +82,5 @@ function refresh() {
 
 refresh();
 setInterval(refresh, 10000);
-document.getElementById('server-select').addEventListener('change', refresh);
 </script>
 {% endblock %}
