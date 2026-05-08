@@ -4,6 +4,7 @@ import threading
 import time
 import logging
 import fnmatch
+import ctypes
 from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
@@ -18,8 +19,26 @@ _SYSTEM_ACCOUNTS = frozenset({
 _NOISY_PATH_PREFIXES = (
     'C:\\Windows\\',
     'C:\\ProgramData\\Microsoft\\',
-    '\\Device\\HarddiskVolume',  # raw device paths
 )
+
+
+def _build_volume_map():
+    """Map NT device paths to DOS drive letters via QueryDosDevice."""
+    buf = ctypes.create_unicode_buffer(1024)
+    vol_map = {}
+    for letter in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
+        drive = f'{letter}:'
+        if ctypes.windll.kernel32.QueryDosDeviceW(drive, buf, 1024) > 0:
+            vol_map[buf.value] = drive
+    return vol_map
+
+
+def _nt_to_dos(path, vol_map):
+    """Convert NT device path to DOS path, e.g. \\Device\\HarddiskVolume3\\foo -> C:\\foo."""
+    for nt_prefix, drive in vol_map.items():
+        if path.startswith(nt_prefix + '\\'):
+            return drive + path[len(nt_prefix):]
+    return path
 
 
 def _parse_action(mask_hex):
@@ -117,6 +136,8 @@ class EventLogMonitor:
         if not events:
             return
 
+        vol_map = _build_volume_map()
+
         with self.app.app_context():
             from db import WatchPath
             patterns = [f.pattern for f in AccountFilter.query.filter_by(is_active=True).all()]
@@ -126,7 +147,7 @@ class EventLogMonitor:
             new_entries = []
             for ev in events:
                 user = ev.get('UN') or ''
-                obj = ev.get('ON') or ''
+                obj = _nt_to_dos(ev.get('ON') or '', vol_map)
 
                 if _is_noisy(user, obj):
                     continue
