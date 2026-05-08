@@ -40,7 +40,8 @@ De app heeft vier schermen bereikbaar via de navigatiebalk:
 
 ### Activiteitenlog
 
-- Toont alle gelogde bestandstoegang, gesorteerd op tijdstip (nieuwste eerst)
+- Toont alle gelogde bestandstoegang **gegroepeerd per gebruiker** — elke gebruiker krijgt een eigen sectie met de bestandstoegang gesorteerd op tijdstip (nieuwste eerst)
+- De eerste gebruiker is standaard uitgeklapt; overige gebruikers zijn ingeklapt en kunnen worden opengedraaid
 - **Zoeken** op gebruikersnaam, datum en map/bestandspad — velden zijn combineerbaar
 - **Scherm wissen** — verbergt alle bestaande logregels in de weergave zonder ze uit de database te verwijderen. Handig na het instellen van nieuwe filters zodat alleen nieuwe activiteit zichtbaar is.
 
