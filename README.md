@@ -4,26 +4,32 @@ Webapplicatie voor het monitoren van bestandstoegang op een Windows file server.
 
 ## Vereisten
 
-- Windows Server of Windows 10/11 (als Administrator)
-- Python 3.10+
-- PowerShell 5.1+
+- Windows Server of Windows 10/11
+- PowerShell 5.1+ (als Administrator)
+- Python 3.10+ (wordt automatisch geïnstalleerd door `setup.ps1` als het ontbreekt)
 
 ## Installatie
 
-```powershell
-# Dependencies installeren
-py -m pip install -r requirements.txt
+Voer het setup-script uit als Administrator op de doelserver. Het script installeert Python indien nodig, kopieert de app-bestanden, maakt een virtual environment aan en registreert de app als scheduled task onder het SYSTEM-account.
 
-# App starten (ontwikkelmodus)
-py app.py
+```powershell
+.\setup.ps1
 ```
 
-De app is bereikbaar op `http://localhost:5000`.
-
-Om de app automatisch te starten bij het opstarten van de server, voer het installatiescript uit als Administrator:
+Optionele parameters:
 
 ```powershell
-.\install-service.ps1
+# Aangepaste installatiedirectory en poort
+.\setup.ps1 -InstallDir "D:\Tools\FileServer-Monitor" -Port 8080
+```
+
+Na installatie is de app bereikbaar op `http://localhost:5000` (of de gekozen poort).
+
+### Ontwikkelmodus
+
+```powershell
+py -m pip install -r requirements.txt
+py app.py
 ```
 
 ---
