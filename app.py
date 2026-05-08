@@ -1,4 +1,6 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, Response
+import csv
+import io
 from datetime import datetime, timedelta
 
 from config import Config
@@ -54,6 +56,56 @@ def index():
 
     return render_template('index.html', entries=entries, total=total,
                            search={'user': user, 'datum': datum, 'pad': pad})
+
+
+@app.route('/export')
+def export_csv():
+    user = request.args.get('user', '').strip()
+    datum = request.args.get('datum', '').strip()
+    pad = request.args.get('pad', '').strip()
+
+    query = FileAccess.query
+
+    if user:
+        query = query.filter(FileAccess.username.ilike(f'%{user}%'))
+    if datum:
+        try:
+            day = datetime.strptime(datum, '%Y-%m-%d')
+            query = query.filter(
+                FileAccess.timestamp >= day,
+                FileAccess.timestamp < day + timedelta(days=1),
+            )
+        except ValueError:
+            pass
+    if pad:
+        query = query.filter(FileAccess.file_path.ilike(f'%{pad}%'))
+
+    entries = query.order_by(FileAccess.username, FileAccess.timestamp.desc()).all()
+
+    buf = io.StringIO()
+    writer = csv.writer(buf, delimiter=';')
+    writer.writerow(['Tijdstip', 'Gebruiker', 'Bestand', 'Actie', 'Proces'])
+    for e in entries:
+        writer.writerow([
+            e.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+            e.username,
+            e.file_path,
+            e.action,
+            e.process_name,
+        ])
+
+    filename = 'activiteitenlog'
+    if user:
+        filename += f'_{user.replace("\\", "-")}'
+    if datum:
+        filename += f'_{datum}'
+    filename += '.csv'
+
+    return Response(
+        '﻿' + buf.getvalue(),  # BOM for Excel UTF-8
+        mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment; filename="{filename}"'},
+    )
 
 
 @app.route('/live')

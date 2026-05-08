@@ -39,6 +39,10 @@
             <i class="bi bi-x"></i> Wissen
         </a>
         {% endif %}
+        <a href="{{ url_for('export_csv', user=search.user, datum=search.datum, pad=search.pad) }}"
+           class="btn btn-sm btn-outline-success">
+            <i class="bi bi-download me-1"></i>Exporteren
+        </a>
     </div>
 </form>
 
