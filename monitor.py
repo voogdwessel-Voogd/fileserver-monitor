@@ -5,7 +5,7 @@ import time
 import logging
 import fnmatch
 import ctypes
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -84,12 +84,14 @@ class EventLogMonitor:
             ['powershell', '-NonInteractive', '-Command', command],
             capture_output=True,
             text=True,
-            timeout=30,
+            timeout=60,
         )
         return result.stdout.strip(), result.stderr.strip(), result.returncode
 
     def get_new_events(self, since_dt):
-        since_str = since_dt.strftime('%Y-%m-%d %H:%M:%S')
+        # PowerShell StartTime expects local time; since_dt is UTC
+        local_since = since_dt.replace(tzinfo=timezone.utc).astimezone().replace(tzinfo=None)
+        since_str = local_since.strftime('%Y-%m-%d %H:%M:%S')
         cmd = (
             "$ev=Get-WinEvent -FilterHashtable @{LogName='Security';Id=4663;"
             "StartTime=([DateTime]::ParseExact('" + since_str + "',"
