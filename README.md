@@ -8,9 +8,16 @@ Webapplicatie voor het monitoren van bestandstoegang op een Windows file server.
 - PowerShell 5.1+ (als Administrator)
 - Python 3.10+ (wordt automatisch geïnstalleerd door `setup.ps1` als het ontbreekt)
 
+---
+
 ## Installatie
 
-Voer het setup-script uit als Administrator op de doelserver. Het script installeert Python indien nodig, kopieert de app-bestanden, maakt een virtual environment aan en registreert de app als scheduled task onder het SYSTEM-account.
+Voer het setup-script uit als Administrator op de doelserver. Het script:
+1. Controleert of Python 3.10+ aanwezig is — installeert Python 3.12 automatisch als het ontbreekt
+2. Kopieert de app-bestanden naar de installatiedirectory
+3. Maakt een virtual environment aan en installeert dependencies
+4. Opent poort 5000 in Windows Firewall
+5. Registreert en start de app als scheduled task onder het SYSTEM-account
 
 ```powershell
 .\setup.ps1
@@ -36,19 +43,20 @@ py app.py
 
 ## Functionaliteit
 
-De app heeft vier schermen bereikbaar via de navigatiebalk:
+De app heeft drie schermen bereikbaar via de navigatiebalk:
 
 | Scherm | Omschrijving |
 |---|---|
-| **Activiteitenlog** | Historisch overzicht van bestandstoegang, gegroepeerd per gebruiker, filterbaar op gebruikersnaam, datum en map |
-| **Exporteren** | Download bestandstoegang als CSV met filteropties op gebruiker, datumbereik en map |
-| **Instellingen** | Alle configuratie op één pagina (zie hieronder) |
+| **Activiteitenlog** | Historisch overzicht van bestandstoegang, gegroepeerd per gebruiker |
+| **Exporteren** | Download bestandstoegang als CSV met filteropties |
+| **Instellingen** | Alle configuratie op één pagina |
 
 ### Activiteitenlog
 
-- Toont alle gelogde bestandstoegang **gegroepeerd per gebruiker** — elke gebruiker krijgt een eigen sectie met de bestandstoegang gesorteerd op tijdstip (nieuwste eerst)
-- Elk bestand wordt **eenmalig getoond** per gebruiker — bij meerdere toegangen tot hetzelfde bestand wordt alleen de meest recente weergegeven
-- De eerste gebruiker is standaard uitgeklapt; overige gebruikers zijn ingeklapt en kunnen worden opengedraaid
+- Toont alle gelogde bestandstoegang **gegroepeerd per gebruiker** — elke gebruiker krijgt een eigen sectie met bestanden gesorteerd op tijdstip (nieuwste eerst)
+- Elk bestand wordt **eenmalig getoond** per gebruiker — bij meerdere toegangen wordt alleen de meest recente weergegeven
+- Alleen **bestanden** worden getoond, geen mappen
+- De eerste gebruiker is standaard uitgeklapt; overige gebruikers zijn ingeklapt
 - **Zoeken** op gebruikersnaam, datum en map/bestandspad — velden zijn combineerbaar
 - **Vernieuwen** — triggert direct een poll van het Security Event Log en herlaadt de pagina, zonder te wachten op het volgende poll-interval
 - **Scherm wissen** — verbergt alle bestaande logregels in de weergave zonder ze uit de database te verwijderen. Handig na het instellen van nieuwe filters zodat alleen nieuwe activiteit zichtbaar is.
@@ -57,13 +65,13 @@ De app heeft vier schermen bereikbaar via de navigatiebalk:
 
 Aparte pagina voor het downloaden van bestandstoegang als CSV:
 - Filterbaar op gebruiker, datumbereik (van/tot) en map
-- Exporteert altijd uit de volledige database, ongeacht "Scherm wissen"
+- Exporteert altijd uit de **volledige database**, ongeacht "Scherm wissen"
 - Bestand gebruikt `;` als scheidingsteken met UTF-8 BOM zodat Excel het direct correct opent
 - Bestandsnaam bevat automatisch de toegepaste filters, bijv. `activiteitenlog_jan_2026-05-08_tm_2026-05-09.csv`
 
 ### Instellingen
 
-Alle configuratie staat op één pagina, verdeeld in vier secties:
+Alle configuratie staat op één pagina, verdeeld in vijf secties:
 
 **Algemeen**
 - *Poll interval* — hoe vaak het Event Log wordt uitgelezen (standaard 30 seconden)
@@ -192,9 +200,10 @@ Single-process Flask-app met een achtergrondthread.
 |---|---|
 | `app.py` | Flask routes en app-startup |
 | `monitor.py` | `EventLogMonitor` — PowerShell polling, NT→DOS padconversie, ruisfiltering, DB-schrijven |
-| `db.py` | SQLAlchemy-modellen: `FileAccess`, `AccountFilter`, `WatchPath`, `AppSetting`, `ServerConfig` |
+| `db.py` | SQLAlchemy-modellen: `FileAccess`, `AccountFilter`, `WatchPath`, `ProcessFilter`, `AppSetting`, `ServerConfig` |
 | `config.py` | Flask/SQLAlchemy-configuratie en standaardwaarden |
+| `setup.ps1` | Installatiescript — Python, venv, firewall, scheduled task |
 
-**Ruisfiltering:** systeemaccounts (`SYSTEM`, `LOCAL SERVICE`, `DWM-*`, `UMFD-*`), machine-accounts (eindigen op `$`) en Windows-systeempaden (`C:\Windows\`, `C:\ProgramData\Microsoft\`) worden automatisch weggefilterd.
+**Ruisfiltering:** systeemaccounts (`SYSTEM`, `LOCAL SERVICE`, `DWM-*`, `UMFD-*`), machine-accounts (eindigen op `$`) en Windows-systeempaden (`C:\Windows\`, `C:\ProgramData\Microsoft\`) worden automatisch weggefilterd. Daarnaast worden alleen events van het type `File` (geen mappen) opgeslagen.
 
 **NT→DOS padconversie:** Event ID 4663 rapporteert bestandspaden soms in NT device-formaat (`\Device\HarddiskVolume3\...`). De monitor converteert deze automatisch naar DOS-formaat (`C:\...`) via `QueryDosDevice` zodat de mapfilters correct werken.
