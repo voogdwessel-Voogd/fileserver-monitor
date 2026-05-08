@@ -41,6 +41,7 @@ De app heeft vier schermen bereikbaar via de navigatiebalk:
 ### Activiteitenlog
 
 - Toont alle gelogde bestandstoegang **gegroepeerd per gebruiker** — elke gebruiker krijgt een eigen sectie met de bestandstoegang gesorteerd op tijdstip (nieuwste eerst)
+- Elk bestand wordt **eenmalig getoond** per gebruiker — bij meerdere toegangen tot hetzelfde bestand wordt alleen de meest recente weergegeven
 - De eerste gebruiker is standaard uitgeklapt; overige gebruikers zijn ingeklapt en kunnen worden opengedraaid
 - **Zoeken** op gebruikersnaam, datum en map/bestandspad — velden zijn combineerbaar
 - **Vernieuwen** — triggert direct een poll van het Security Event Log en herlaadt de pagina, zonder te wachten op het volgende poll-interval
