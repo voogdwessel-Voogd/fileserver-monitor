@@ -76,6 +76,15 @@ Bepaalt welke gebruikersaccounts gemonitord worden. Zonder actieve filters worde
 | `DOMEIN\jan*` | Alle accounts van Jan in het domein |
 | `*\marie.jansen` | Specifieke gebruiker in elk domein |
 
+**Proces uitsluitingen**
+Processen die overeenkomen met een actief patroon worden niet gelogd. Ondersteunt wildcards:
+
+| Patroon | Betekenis |
+|---|---|
+| `svchost.exe` | Sluit dit specifieke proces uit |
+| `*update*` | Alle update-gerelateerde processen |
+| `SearchIndexer.exe` | Windows zoekindexer |
+
 **Servers**
 Beheerpagina voor te monitoren servers (voor toekomstige remote server-ondersteuning).
 
