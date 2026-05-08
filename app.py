@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 import csv
 import io
 from datetime import datetime, timedelta
+from sqlalchemy import func
 
 from config import Config
 from db import db, FileAccess, ServerConfig, AccountFilter, WatchPath, AppSetting, get_setting
@@ -51,7 +52,19 @@ def index():
         query = query.filter(FileAccess.file_path.ilike(f'%{pad}%'))
 
     total = query.count()
-    entries = (query.order_by(FileAccess.username, FileAccess.timestamp.desc())
+
+    # Deduplicate: one entry per (username, file_path) — keep most recent
+    subq = (query.with_entities(
+        FileAccess.username,
+        FileAccess.file_path,
+        func.max(FileAccess.timestamp).label('max_ts'),
+    ).group_by(FileAccess.username, FileAccess.file_path).subquery())
+
+    entries = (db.session.query(FileAccess)
+               .join(subq, (FileAccess.username == subq.c.username) &
+                           (FileAccess.file_path == subq.c.file_path) &
+                           (FileAccess.timestamp == subq.c.max_ts))
+               .order_by(FileAccess.username, FileAccess.timestamp.desc())
                .limit(1000).all())
 
     return render_template('index.html', entries=entries, total=total,
