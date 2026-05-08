@@ -15,9 +15,9 @@ _SYSTEM_ACCOUNTS = frozenset({
 })
 
 _NOISY_PATH_PREFIXES = (
-    r'C:\Windows\\',
-    r'C:\ProgramData\Microsoft\\',
-    r'\Device\HarddiskVolume',  # raw device paths
+    'C:\\Windows\\',
+    'C:\\ProgramData\\Microsoft\\',
+    '\\Device\\HarddiskVolume',  # raw device paths
 )
 
 
@@ -52,6 +52,7 @@ class EventLogMonitor:
         self._running = False
         self._thread = None
         self._last_poll_time = datetime.utcnow() - timedelta(seconds=60)
+        self._last_cleanup = datetime.utcnow() - timedelta(days=1)  # run on first loop
 
     def _run_powershell(self, command):
         result = subprocess.run(
@@ -143,6 +144,20 @@ class EventLogMonitor:
                 self.db.session.commit()
             logger.info(f'Stored {len(new_entries)} event(s)')
 
+    def _cleanup(self):
+        from db import FileAccess
+        from config import Config
+
+        days = Config.RETENTION_DAYS
+        if not days:
+            return
+        cutoff = datetime.utcnow() - timedelta(days=days)
+        with self.app.app_context():
+            deleted = FileAccess.query.filter(FileAccess.timestamp < cutoff).delete()
+            self.db.session.commit()
+        if deleted:
+            logger.info(f'Retention cleanup: {deleted} record(s) ouder dan {days} dagen verwijderd')
+
     def _loop(self):
         from config import Config
 
@@ -153,6 +168,14 @@ class EventLogMonitor:
                 self._poll()
             except Exception as e:
                 logger.error(f'Poll error: {e}')
+
+            if (datetime.utcnow() - self._last_cleanup).total_seconds() >= 86400:
+                try:
+                    self._cleanup()
+                except Exception as e:
+                    logger.error(f'Cleanup error: {e}')
+                self._last_cleanup = datetime.utcnow()
+
             for _ in range(interval):
                 if not self._running:
                     break

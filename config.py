@@ -5,3 +5,4 @@ class Config:
     SQLALCHEMY_DATABASE_URI = 'sqlite:///fileserver.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     POLL_INTERVAL = int(os.environ.get('POLL_INTERVAL', '30'))
+    RETENTION_DAYS = int(os.environ.get('RETENTION_DAYS', '30'))
