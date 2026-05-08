@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="d-flex align-items-center mb-3">
+    <h5 class="mb-0"><i class="bi bi-download me-1"></i>Exporteren</h5>
+    <span class="ms-3 text-muted small">Exporteer bestandstoegang uit de volledige history als CSV</span>
+</div>
+
+<div class="card" style="max-width: 600px;">
+    <div class="card-body">
+        <form method="get" action="{{ url_for('export_csv') }}" id="exportForm">
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Gebruiker</label>
+                <input type="text" name="user" class="form-control"
+                       placeholder="Bijv. DOMEIN\jan of AH*">
+            </div>
+            <div class="row mb-3">
+                <div class="col">
+                    <label class="form-label fw-semibold">Van datum</label>
+                    <input type="date" name="datum_van" class="form-control">
+                </div>
+                <div class="col">
+                    <label class="form-label fw-semibold">Tot en met datum</label>
+                    <input type="date" name="datum_tot" class="form-control">
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="form-label fw-semibold">Map of bestand</label>
+                <input type="text" name="pad" class="form-control"
+                       placeholder="Bijv. D:\Data\">
+            </div>
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-download me-1"></i>Download CSV
+            </button>
+            <p class="text-muted small mt-3 mb-0">
+                Lege velden worden niet gefilterd. Zonder filters wordt de volledige database geëxporteerd.
+            </p>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

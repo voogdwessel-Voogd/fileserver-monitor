@@ -126,14 +126,13 @@ class EventLogMonitor:
 
         since = self._last_poll_time
         now = datetime.utcnow()
+        self._last_poll_time = now  # always advance, even on error
 
         try:
             events = self.get_new_events(since)
         except Exception as e:
             logger.error(f'Error polling event log: {e}')
             return
-
-        self._last_poll_time = now
 
         if not events:
             return

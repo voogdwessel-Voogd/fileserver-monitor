@@ -9,12 +9,17 @@
             <span class="text-warning">(max. 1000 getoond)</span>
         {% endif %}
     </span>
-    <form method="post" action="{{ url_for('clear_view') }}" class="ms-auto"
-          onsubmit="return confirm('Scherm wissen? Bestaande logregels blijven in de database, maar zijn niet meer zichtbaar.')">
-        <button type="submit" class="btn btn-sm btn-outline-secondary">
-            <i class="bi bi-eraser me-1"></i>Scherm wissen
+    <div class="ms-auto d-flex gap-2">
+        <button type="button" class="btn btn-sm btn-outline-primary" onclick="location.reload()">
+            <i class="bi bi-arrow-clockwise me-1"></i>Vernieuwen
         </button>
-    </form>
+        <form method="post" action="{{ url_for('clear_view') }}"
+              onsubmit="return confirm('Scherm wissen? Bestaande logregels blijven in de database, maar zijn niet meer zichtbaar.')">
+            <button type="submit" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-eraser me-1"></i>Scherm wissen
+            </button>
+        </form>
+    </div>
 </div>
 
 <form method="get" class="row g-2 mb-3">
@@ -39,33 +44,6 @@
             <i class="bi bi-x"></i> Wissen
         </a>
         {% endif %}
-        <a href="{{ url_for('export_csv', user=search.user, datum_van=search.datum, datum_tot=search.datum, pad=search.pad) }}"
-           class="btn btn-sm btn-outline-success">
-            <i class="bi bi-download me-1"></i>Exporteren
-        </a>
-    </div>
-</form>
-
-<form method="get" action="{{ url_for('export_csv') }}" class="row g-2 mb-4 align-items-end border rounded p-2 bg-light">
-    <div class="col-12"><small class="text-muted fw-semibold"><i class="bi bi-download me-1"></i>Exporteren uit volledige history</small></div>
-    <div class="col-md-3">
-        <input type="text" name="user" class="form-control form-control-sm"
-               placeholder="Gebruiker (optioneel)">
-    </div>
-    <div class="col-md-2">
-        <input type="date" name="datum_van" class="form-control form-control-sm" title="Van datum">
-    </div>
-    <div class="col-md-2">
-        <input type="date" name="datum_tot" class="form-control form-control-sm" title="Tot en met datum">
-    </div>
-    <div class="col-md-3">
-        <input type="text" name="pad" class="form-control form-control-sm"
-               placeholder="Map of bestand (optioneel)">
-    </div>
-    <div class="col-auto">
-        <button type="submit" class="btn btn-sm btn-success">
-            <i class="bi bi-download me-1"></i>Download CSV
-        </button>
     </div>
 </form>
 

@@ -21,6 +21,10 @@
                 <a class="nav-link {% if request.endpoint == 'live' %}active{% endif %}" href="{{ url_for('live') }}">
                     <i class="bi bi-activity"></i> Live
                 </a>
+                <a class="nav-link {% if request.endpoint == 'export_page' %}active{% endif %}"
+                   href="{{ url_for('export_page') }}">
+                    <i class="bi bi-download"></i> Exporteren
+                </a>
                 <a class="nav-link {% if request.endpoint == 'settings_page' %}active{% endif %}"
                    href="{{ url_for('settings_page') }}">
                     <i class="bi bi-gear"></i> Instellingen

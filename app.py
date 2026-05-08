@@ -59,6 +59,11 @@ def index():
 
 
 @app.route('/export')
+def export_page():
+    return render_template('export.html')
+
+
+@app.route('/export/download')
 def export_csv():
     user = request.args.get('user', '').strip()
     datum_van = request.args.get('datum_van', '').strip()
