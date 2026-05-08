@@ -12,6 +12,30 @@
     </form>
 </div>
 
+<form method="get" class="row g-2 mb-3">
+    <div class="col-md-3">
+        <input type="text" name="user" class="form-control form-control-sm"
+               placeholder="Gebruiker" value="{{ search.user }}">
+    </div>
+    <div class="col-md-2">
+        <input type="date" name="datum" class="form-control form-control-sm"
+               value="{{ search.datum }}">
+    </div>
+    <div class="col-md-4">
+        <input type="text" name="pad" class="form-control form-control-sm"
+               placeholder="Map of bestand (bijv. C:\Data\)" value="{{ search.pad }}">
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-sm btn-primary">
+            <i class="bi bi-search me-1"></i>Zoeken
+        </button>
+        {% if search.user or search.datum or search.pad %}
+        <a href="{{ url_for('index') }}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-x"></i> Wissen
+        </a>
+        {% endif %}
+    </div>
+</form>
 
 <div class="table-responsive">
     <table class="table table-sm table-hover table-striped align-middle">
@@ -53,7 +77,7 @@
             <tr>
                 <td colspan="5" class="text-center text-muted py-4">
                     <i class="bi bi-inbox fs-4 d-block mb-1"></i>
-                    Geen activiteit gevonden voor de geselecteerde filters
+                    Geen activiteit gevonden
                 </td>
             </tr>
             {% endfor %}
@@ -66,7 +90,8 @@
     <ul class="pagination pagination-sm">
         {% if entries.has_prev %}
         <li class="page-item">
-            <a class="page-link" href="{{ url_for('index', page=entries.prev_num) }}">Vorige</a>
+            <a class="page-link" href="{{ url_for('index', page=entries.prev_num,
+                user=search.user, datum=search.datum, pad=search.pad) }}">Vorige</a>
         </li>
         {% endif %}
         <li class="page-item disabled">
@@ -74,7 +99,8 @@
         </li>
         {% if entries.has_next %}
         <li class="page-item">
-            <a class="page-link" href="{{ url_for('index', page=entries.next_num) }}">Volgende</a>
+            <a class="page-link" href="{{ url_for('index', page=entries.next_num,
+                user=search.user, datum=search.datum, pad=search.pad) }}">Volgende</a>
         </li>
         {% endif %}
     </ul>

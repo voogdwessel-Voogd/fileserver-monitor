@@ -22,19 +22,37 @@ def basename_filter(path):
 @app.route('/')
 def index():
     page = request.args.get('page', 1, type=int)
+    user = request.args.get('user', '').strip()
+    datum = request.args.get('datum', '').strip()
+    pad = request.args.get('pad', '').strip()
 
     query = FileAccess.query
+
     view_from_raw = get_setting('LOG_VIEW_FROM')
     if view_from_raw:
         try:
-            view_from = datetime.fromisoformat(view_from_raw)
-            query = query.filter(FileAccess.timestamp >= view_from)
+            query = query.filter(FileAccess.timestamp >= datetime.fromisoformat(view_from_raw))
         except ValueError:
             pass
 
+    if user:
+        query = query.filter(FileAccess.username.ilike(f'%{user}%'))
+    if datum:
+        try:
+            day = datetime.strptime(datum, '%Y-%m-%d')
+            query = query.filter(
+                FileAccess.timestamp >= day,
+                FileAccess.timestamp < day + timedelta(days=1),
+            )
+        except ValueError:
+            pass
+    if pad:
+        query = query.filter(FileAccess.file_path.ilike(f'%{pad}%'))
+
     entries = query.order_by(FileAccess.timestamp.desc()).paginate(page=page, per_page=50)
 
-    return render_template('index.html', entries=entries)
+    return render_template('index.html', entries=entries,
+                           search={'user': user, 'datum': datum, 'pad': pad})
 
 
 @app.route('/live')
