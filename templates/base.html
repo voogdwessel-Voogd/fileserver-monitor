@@ -21,38 +21,10 @@
                 <a class="nav-link {% if request.endpoint == 'live' %}active{% endif %}" href="{{ url_for('live') }}">
                     <i class="bi bi-activity"></i> Live
                 </a>
-                <div class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle {% if request.endpoint in ('settings_page', 'accounts', 'servers', 'paths') %}active{% endif %}"
-                       href="#" role="button" data-bs-toggle="dropdown">
-                        <i class="bi bi-gear"></i> Instellingen
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark">
-                        <li>
-                            <a class="dropdown-item {% if request.endpoint == 'settings_page' %}active{% endif %}"
-                               href="{{ url_for('settings_page') }}">
-                                <i class="bi bi-sliders me-1"></i>Algemeen
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item {% if request.endpoint == 'accounts' %}active{% endif %}"
-                               href="{{ url_for('accounts') }}">
-                                <i class="bi bi-person-check me-1"></i>Accounts
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item {% if request.endpoint == 'paths' %}active{% endif %}"
-                               href="{{ url_for('paths') }}">
-                                <i class="bi bi-folder-check me-1"></i>Mappen
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item {% if request.endpoint == 'servers' %}active{% endif %}"
-                               href="{{ url_for('servers') }}">
-                                <i class="bi bi-server me-1"></i>Servers
-                            </a>
-                        </li>
-                    </ul>
-                </div>
+                <a class="nav-link {% if request.endpoint == 'settings_page' %}active{% endif %}"
+                   href="{{ url_for('settings_page') }}">
+                    <i class="bi bi-gear"></i> Instellingen
+                </a>
             </div>
         </div>
     </nav>

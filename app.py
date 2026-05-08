@@ -35,20 +35,14 @@ def index():
     if action_filter:
         query = query.filter(FileAccess.action == action_filter)
 
-    entries = query.order_by(FileAccess.timestamp.desc()).paginate(
-        page=page, per_page=50
-    )
+    entries = query.order_by(FileAccess.timestamp.desc()).paginate(page=page, per_page=50)
     users = db.session.query(FileAccess.username).distinct().all()
 
     return render_template(
         'index.html',
         entries=entries,
         users=[u[0] for u in users],
-        filters={
-            'user': user_filter,
-            'action': action_filter,
-            'hours': hours,
-        },
+        filters={'user': user_filter, 'action': action_filter, 'hours': hours},
     )
 
 
@@ -62,53 +56,19 @@ def api_live():
     return jsonify(monitor.get_recent_events())
 
 
-@app.route('/servers')
-def servers():
-    all_servers = ServerConfig.query.all()
-    return render_template('servers.html', servers=all_servers)
-
-
-@app.route('/servers/add', methods=['POST'])
-def add_server():
-    name = request.form.get('name', '').strip()
-    hostname = request.form.get('hostname', '').strip()
-
-    if not name:
-        flash('Server naam is verplicht', 'error')
-        return redirect(url_for('servers'))
-
-    server = ServerConfig(name=name, hostname=hostname or None)
-    db.session.add(server)
-    db.session.commit()
-    flash(f'Server "{name}" toegevoegd', 'success')
-    return redirect(url_for('servers'))
-
-
-@app.route('/servers/<int:server_id>/toggle', methods=['POST'])
-def toggle_server(server_id):
-    server = db.get_or_404(ServerConfig, server_id)
-    server.is_active = not server.is_active
-    db.session.commit()
-    return redirect(url_for('servers'))
-
-
-@app.route('/servers/<int:server_id>/delete', methods=['POST'])
-def delete_server(server_id):
-    server = db.get_or_404(ServerConfig, server_id)
-    name = server.name
-    db.session.delete(server)
-    db.session.commit()
-    flash(f'Server "{name}" verwijderd', 'success')
-    return redirect(url_for('servers'))
-
+# ── Instellingen ──────────────────────────────────────────────────────────────
 
 @app.route('/settings')
 def settings_page():
-    current = {
-        'POLL_INTERVAL': get_setting('POLL_INTERVAL', Config.POLL_INTERVAL),
-        'RETENTION_DAYS': get_setting('RETENTION_DAYS', Config.RETENTION_DAYS),
-    }
-    return render_template('settings.html', settings=current)
+    return render_template('settings.html',
+        settings={
+            'POLL_INTERVAL': get_setting('POLL_INTERVAL', Config.POLL_INTERVAL),
+            'RETENTION_DAYS': get_setting('RETENTION_DAYS', Config.RETENTION_DAYS),
+        },
+        account_filters=AccountFilter.query.all(),
+        watch_paths=WatchPath.query.all(),
+        servers=ServerConfig.query.all(),
+    )
 
 
 @app.route('/settings/update', methods=['POST'])
@@ -138,22 +98,18 @@ def update_settings():
     return redirect(url_for('settings_page'))
 
 
-@app.route('/paths')
-def paths():
-    all_paths = WatchPath.query.all()
-    return render_template('paths.html', paths=all_paths)
-
+# Mappen
 
 @app.route('/paths/add', methods=['POST'])
 def add_path():
     path = request.form.get('path', '').strip()
     if not path:
         flash('Pad is verplicht', 'error')
-        return redirect(url_for('paths'))
-    db.session.add(WatchPath(path=path))
-    db.session.commit()
-    flash(f'Map "{path}" toegevoegd', 'success')
-    return redirect(url_for('paths'))
+    else:
+        db.session.add(WatchPath(path=path))
+        db.session.commit()
+        flash(f'Map "{path}" toegevoegd', 'success')
+    return redirect(url_for('settings_page'))
 
 
 @app.route('/paths/<int:path_id>/toggle', methods=['POST'])
@@ -161,35 +117,30 @@ def toggle_path(path_id):
     p = db.get_or_404(WatchPath, path_id)
     p.is_active = not p.is_active
     db.session.commit()
-    return redirect(url_for('paths'))
+    return redirect(url_for('settings_page'))
 
 
 @app.route('/paths/<int:path_id>/delete', methods=['POST'])
 def delete_path(path_id):
     p = db.get_or_404(WatchPath, path_id)
-    label = p.path
     db.session.delete(p)
     db.session.commit()
-    flash(f'Map "{label}" verwijderd', 'success')
-    return redirect(url_for('paths'))
+    flash(f'Map "{p.path}" verwijderd', 'success')
+    return redirect(url_for('settings_page'))
 
 
-@app.route('/accounts')
-def accounts():
-    all_filters = AccountFilter.query.all()
-    return render_template('accounts.html', filters=all_filters)
-
+# Accounts
 
 @app.route('/accounts/add', methods=['POST'])
 def add_account_filter():
     pattern = request.form.get('pattern', '').strip()
     if not pattern:
         flash('Patroon is verplicht', 'error')
-        return redirect(url_for('accounts'))
-    db.session.add(AccountFilter(pattern=pattern))
-    db.session.commit()
-    flash(f'Patroon "{pattern}" toegevoegd', 'success')
-    return redirect(url_for('accounts'))
+    else:
+        db.session.add(AccountFilter(pattern=pattern))
+        db.session.commit()
+        flash(f'Patroon "{pattern}" toegevoegd', 'success')
+    return redirect(url_for('settings_page'))
 
 
 @app.route('/accounts/<int:filter_id>/toggle', methods=['POST'])
@@ -197,17 +148,48 @@ def toggle_account_filter(filter_id):
     f = db.get_or_404(AccountFilter, filter_id)
     f.is_active = not f.is_active
     db.session.commit()
-    return redirect(url_for('accounts'))
+    return redirect(url_for('settings_page'))
 
 
 @app.route('/accounts/<int:filter_id>/delete', methods=['POST'])
 def delete_account_filter(filter_id):
     f = db.get_or_404(AccountFilter, filter_id)
-    pattern = f.pattern
     db.session.delete(f)
     db.session.commit()
-    flash(f'Patroon "{pattern}" verwijderd', 'success')
-    return redirect(url_for('accounts'))
+    flash(f'Patroon "{f.pattern}" verwijderd', 'success')
+    return redirect(url_for('settings_page'))
+
+
+# Servers
+
+@app.route('/servers/add', methods=['POST'])
+def add_server():
+    name = request.form.get('name', '').strip()
+    hostname = request.form.get('hostname', '').strip()
+    if not name:
+        flash('Server naam is verplicht', 'error')
+    else:
+        db.session.add(ServerConfig(name=name, hostname=hostname or None))
+        db.session.commit()
+        flash(f'Server "{name}" toegevoegd', 'success')
+    return redirect(url_for('settings_page'))
+
+
+@app.route('/servers/<int:server_id>/toggle', methods=['POST'])
+def toggle_server(server_id):
+    server = db.get_or_404(ServerConfig, server_id)
+    server.is_active = not server.is_active
+    db.session.commit()
+    return redirect(url_for('settings_page'))
+
+
+@app.route('/servers/<int:server_id>/delete', methods=['POST'])
+def delete_server(server_id):
+    server = db.get_or_404(ServerConfig, server_id)
+    db.session.delete(server)
+    db.session.commit()
+    flash(f'Server "{server.name}" verwijderd', 'success')
+    return redirect(url_for('settings_page'))
 
 
 with app.app_context():

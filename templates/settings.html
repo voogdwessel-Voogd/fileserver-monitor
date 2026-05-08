@@ -3,31 +3,188 @@
 
 <h5 class="mb-4"><i class="bi bi-gear me-1"></i>Instellingen</h5>
 
-<form method="post" action="{{ url_for('update_settings') }}" style="max-width: 500px;">
-    <div class="mb-4">
-        <label class="form-label fw-semibold">Poll interval
-            <span class="text-muted fw-normal small">(seconden)</span>
-        </label>
-        <input type="number" name="POLL_INTERVAL" class="form-control"
+{# ── Algemeen ─────────────────────────────────────────────────────────────── #}
+<h6 class="text-muted text-uppercase small fw-semibold mb-3">Algemeen</h6>
+
+<form method="post" action="{{ url_for('update_settings') }}" style="max-width: 480px;">
+    <div class="mb-3">
+        <label class="form-label">Poll interval <span class="text-muted small">(seconden)</span></label>
+        <input type="number" name="POLL_INTERVAL" class="form-control form-control-sm"
                value="{{ settings.POLL_INTERVAL }}" min="5" step="5" required>
-        <div class="form-text">Hoe vaak de monitor het Windows Event Log raadpleegt. Standaard: 30 seconden.</div>
+        <div class="form-text">Hoe vaak het Windows Event Log wordt uitgelezen. Standaard: 30.</div>
     </div>
-
-    <div class="mb-4">
-        <label class="form-label fw-semibold">Bewaarperiode
-            <span class="text-muted fw-normal small">(dagen)</span>
-        </label>
-        <input type="number" name="RETENTION_DAYS" class="form-control"
+    <div class="mb-3">
+        <label class="form-label">Bewaarperiode <span class="text-muted small">(dagen)</span></label>
+        <input type="number" name="RETENTION_DAYS" class="form-control form-control-sm"
                value="{{ settings.RETENTION_DAYS }}" min="0" required>
-        <div class="form-text">
-            Aantal dagen dat logregels bewaard worden. Stel in op <code>0</code> om nooit automatisch te verwijderen.
-            Standaard: 365 dagen.
-        </div>
+        <div class="form-text">Aantal dagen dat logregels bewaard worden. <code>0</code> = nooit verwijderen. Standaard: 365.</div>
     </div>
-
-    <button type="submit" class="btn btn-primary">
+    <button type="submit" class="btn btn-sm btn-primary">
         <i class="bi bi-check-lg me-1"></i>Opslaan
     </button>
 </form>
+
+<hr class="my-4">
+
+{# ── Mappen ───────────────────────────────────────────────────────────────── #}
+<h6 class="text-muted text-uppercase small fw-semibold mb-2">Te monitoren mappen</h6>
+<p class="text-muted small mb-3">
+    Zonder actieve mappen worden events van <strong>alle paden</strong> bijgehouden.
+</p>
+
+<form method="post" action="{{ url_for('add_path') }}" class="row g-2 mb-3" style="max-width: 560px;">
+    <div class="col">
+        <input type="text" name="path" class="form-control form-control-sm"
+               placeholder="bijv. D:\Data\ of D:\Data\Gedeeld" required>
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-sm btn-primary">
+            <i class="bi bi-plus-lg"></i> Toevoegen
+        </button>
+    </div>
+</form>
+
+{% if watch_paths %}
+<table class="table table-sm table-hover align-middle mb-0" style="max-width: 700px;">
+    <thead class="table-dark">
+        <tr><th>Pad</th><th>Status</th><th></th></tr>
+    </thead>
+    <tbody>
+        {% for p in watch_paths %}
+        <tr>
+            <td><code>{{ p.path }}</code></td>
+            <td>
+                {% if p.is_active %}<span class="badge bg-success">Actief</span>
+                {% else %}<span class="badge bg-secondary">Inactief</span>{% endif %}
+            </td>
+            <td class="text-end">
+                <form method="post" action="{{ url_for('toggle_path', path_id=p.id) }}" class="d-inline">
+                    <button class="btn btn-sm btn-outline-secondary">
+                        {% if p.is_active %}Deactiveren{% else %}Activeren{% endif %}
+                    </button>
+                </form>
+                <form method="post" action="{{ url_for('delete_path', path_id=p.id) }}" class="d-inline"
+                      onsubmit="return confirm('Map &quot;{{ p.path }}&quot; verwijderen?')">
+                    <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p class="text-muted small">Nog geen mappen ingesteld.</p>
+{% endif %}
+
+<hr class="my-4">
+
+{# ── Accounts ─────────────────────────────────────────────────────────────── #}
+<h6 class="text-muted text-uppercase small fw-semibold mb-2">Account filters</h6>
+<p class="text-muted small mb-3">
+    Zonder actieve filters worden <strong>alle gebruikersaccounts</strong> gemonitord.
+    Gebruik <code>*</code> als wildcard, bijv. <code>AH*</code> of <code>DOMEIN\jan*</code>.
+</p>
+
+<form method="post" action="{{ url_for('add_account_filter') }}" class="row g-2 mb-3" style="max-width: 560px;">
+    <div class="col">
+        <input type="text" name="pattern" class="form-control form-control-sm"
+               placeholder="bijv. AH* of DOMEIN\jan.de.vries" required>
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-sm btn-primary">
+            <i class="bi bi-plus-lg"></i> Toevoegen
+        </button>
+    </div>
+</form>
+
+{% if account_filters %}
+<table class="table table-sm table-hover align-middle mb-0" style="max-width: 700px;">
+    <thead class="table-dark">
+        <tr><th>Patroon</th><th>Status</th><th></th></tr>
+    </thead>
+    <tbody>
+        {% for f in account_filters %}
+        <tr>
+            <td><code>{{ f.pattern }}</code></td>
+            <td>
+                {% if f.is_active %}<span class="badge bg-success">Actief</span>
+                {% else %}<span class="badge bg-secondary">Inactief</span>{% endif %}
+            </td>
+            <td class="text-end">
+                <form method="post" action="{{ url_for('toggle_account_filter', filter_id=f.id) }}" class="d-inline">
+                    <button class="btn btn-sm btn-outline-secondary">
+                        {% if f.is_active %}Deactiveren{% else %}Activeren{% endif %}
+                    </button>
+                </form>
+                <form method="post" action="{{ url_for('delete_account_filter', filter_id=f.id) }}" class="d-inline"
+                      onsubmit="return confirm('Patroon &quot;{{ f.pattern }}&quot; verwijderen?')">
+                    <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p class="text-muted small">Nog geen patronen ingesteld.</p>
+{% endif %}
+
+<hr class="my-4">
+
+{# ── Servers ──────────────────────────────────────────────────────────────── #}
+<h6 class="text-muted text-uppercase small fw-semibold mb-2">Servers</h6>
+<p class="text-muted small mb-3">
+    Laat hostname leeg voor de lokale server.
+    Remote servers vereisen PowerShell Remoting (<code>Enable-PSRemoting</code>).
+</p>
+
+<form method="post" action="{{ url_for('add_server') }}" class="row g-2 mb-3" style="max-width: 600px;">
+    <div class="col-md-5">
+        <input type="text" name="name" class="form-control form-control-sm"
+               placeholder="Naam (bijv. FileServer01)" required>
+    </div>
+    <div class="col-md-5">
+        <input type="text" name="hostname" class="form-control form-control-sm"
+               placeholder="Hostname of IP (leeg = lokaal)">
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-sm btn-primary">
+            <i class="bi bi-plus-lg"></i> Toevoegen
+        </button>
+    </div>
+</form>
+
+{% if servers %}
+<table class="table table-sm table-hover align-middle mb-0" style="max-width: 700px;">
+    <thead class="table-dark">
+        <tr><th>Naam</th><th>Hostname</th><th>Status</th><th></th></tr>
+    </thead>
+    <tbody>
+        {% for s in servers %}
+        <tr>
+            <td>{{ s.name }}</td>
+            <td>{% if s.hostname %}{{ s.hostname }}{% else %}<em class="text-muted">lokaal</em>{% endif %}</td>
+            <td>
+                {% if s.is_active %}<span class="badge bg-success">Actief</span>
+                {% else %}<span class="badge bg-secondary">Inactief</span>{% endif %}
+            </td>
+            <td class="text-end">
+                <form method="post" action="{{ url_for('toggle_server', server_id=s.id) }}" class="d-inline">
+                    <button class="btn btn-sm btn-outline-secondary">
+                        {% if s.is_active %}Deactiveren{% else %}Activeren{% endif %}
+                    </button>
+                </form>
+                <form method="post" action="{{ url_for('delete_server', server_id=s.id) }}" class="d-inline"
+                      onsubmit="return confirm('Server &quot;{{ s.name }}&quot; verwijderen?')">
+                    <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p class="text-muted small">Nog geen servers ingesteld.</p>
+{% endif %}
 
 {% endblock %}
