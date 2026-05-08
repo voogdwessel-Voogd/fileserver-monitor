@@ -12,33 +12,6 @@
     </form>
 </div>
 
-<form method="get" class="row g-2 mb-3">
-    <div class="col-auto">
-        <input type="text" name="user" class="form-control form-control-sm"
-               placeholder="Gebruiker" value="{{ filters.user }}">
-    </div>
-    <div class="col-auto">
-        <select name="action" class="form-select form-select-sm">
-            <option value="">Alle acties</option>
-            <option value="read"   {% if filters.action == 'read'   %}selected{% endif %}>Lezen</option>
-            <option value="write"  {% if filters.action == 'write'  %}selected{% endif %}>Schrijven</option>
-            <option value="delete" {% if filters.action == 'delete' %}selected{% endif %}>Verwijderen</option>
-            <option value="other"  {% if filters.action == 'other'  %}selected{% endif %}>Overig</option>
-        </select>
-    </div>
-    <div class="col-auto">
-        <select name="hours" class="form-select form-select-sm">
-            <option value="1"   {% if filters.hours == 1   %}selected{% endif %}>Laatste uur</option>
-            <option value="8"   {% if filters.hours == 8   %}selected{% endif %}>Laatste 8 uur</option>
-            <option value="24"  {% if filters.hours == 24  %}selected{% endif %}>Laatste 24 uur</option>
-            <option value="168" {% if filters.hours == 168 %}selected{% endif %}>Laatste week</option>
-        </select>
-    </div>
-    <div class="col-auto">
-        <button type="submit" class="btn btn-sm btn-primary">Filteren</button>
-        <a href="{{ url_for('index') }}" class="btn btn-sm btn-outline-secondary">Reset</a>
-    </div>
-</form>
 
 <div class="table-responsive">
     <table class="table table-sm table-hover table-striped align-middle">
@@ -93,8 +66,7 @@
     <ul class="pagination pagination-sm">
         {% if entries.has_prev %}
         <li class="page-item">
-            <a class="page-link" href="{{ url_for('index', page=entries.prev_num,
-                user=filters.user, action=filters.action, hours=filters.hours) }}">Vorige</a>
+            <a class="page-link" href="{{ url_for('index', page=entries.prev_num) }}">Vorige</a>
         </li>
         {% endif %}
         <li class="page-item disabled">
@@ -102,8 +74,7 @@
         </li>
         {% if entries.has_next %}
         <li class="page-item">
-            <a class="page-link" href="{{ url_for('index', page=entries.next_num,
-                user=filters.user, action=filters.action, hours=filters.hours) }}">Volgende</a>
+            <a class="page-link" href="{{ url_for('index', page=entries.next_num) }}">Volgende</a>
         </li>
         {% endif %}
     </ul>

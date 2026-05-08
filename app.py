@@ -22,35 +22,19 @@ def basename_filter(path):
 @app.route('/')
 def index():
     page = request.args.get('page', 1, type=int)
-    user_filter = request.args.get('user', '')
-    action_filter = request.args.get('action', '')
-    hours = request.args.get('hours', 24, type=int)
 
     query = FileAccess.query
-    since = datetime.utcnow() - timedelta(hours=hours)
     view_from_raw = get_setting('LOG_VIEW_FROM')
     if view_from_raw:
         try:
             view_from = datetime.fromisoformat(view_from_raw)
-            since = max(since, view_from)
+            query = query.filter(FileAccess.timestamp >= view_from)
         except ValueError:
             pass
-    query = query.filter(FileAccess.timestamp >= since)
-
-    if user_filter:
-        query = query.filter(FileAccess.username.ilike(f'%{user_filter}%'))
-    if action_filter:
-        query = query.filter(FileAccess.action == action_filter)
 
     entries = query.order_by(FileAccess.timestamp.desc()).paginate(page=page, per_page=50)
-    users = db.session.query(FileAccess.username).distinct().all()
 
-    return render_template(
-        'index.html',
-        entries=entries,
-        users=[u[0] for u in users],
-        filters={'user': user_filter, 'action': action_filter, 'hours': hours},
-    )
+    return render_template('index.html', entries=entries)
 
 
 @app.route('/live')
