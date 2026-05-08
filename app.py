@@ -28,6 +28,13 @@ def index():
 
     query = FileAccess.query
     since = datetime.utcnow() - timedelta(hours=hours)
+    view_from_raw = get_setting('LOG_VIEW_FROM')
+    if view_from_raw:
+        try:
+            view_from = datetime.fromisoformat(view_from_raw)
+            since = max(since, view_from)
+        except ValueError:
+            pass
     query = query.filter(FileAccess.timestamp >= since)
 
     if user_filter:
@@ -69,6 +76,18 @@ def settings_page():
         watch_paths=WatchPath.query.all(),
         servers=ServerConfig.query.all(),
     )
+
+
+@app.route('/log/clear-view', methods=['POST'])
+def clear_view():
+    ts = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S')
+    s = db.session.get(AppSetting, 'LOG_VIEW_FROM')
+    if s:
+        s.value = ts
+    else:
+        db.session.add(AppSetting(key='LOG_VIEW_FROM', value=ts))
+    db.session.commit()
+    return redirect(url_for('index'))
 
 
 @app.route('/settings/clear-log', methods=['POST'])
