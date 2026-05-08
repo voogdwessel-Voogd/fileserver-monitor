@@ -44,6 +44,7 @@ De app heeft vier schermen bereikbaar via de navigatiebalk:
 - De eerste gebruiker is standaard uitgeklapt; overige gebruikers zijn ingeklapt en kunnen worden opengedraaid
 - **Zoeken** op gebruikersnaam, datum en map/bestandspad — velden zijn combineerbaar
 - **Scherm wissen** — verbergt alle bestaande logregels in de weergave zonder ze uit de database te verwijderen. Handig na het instellen van nieuwe filters zodat alleen nieuwe activiteit zichtbaar is.
+- **Exporteren** — downloadt de gefilterde resultaten als CSV-bestand. Zonder actieve filters wordt de volledige database geëxporteerd. Het bestand gebruikt `;` als scheidingsteken en UTF-8 BOM zodat Excel het direct correct opent. De bestandsnaam bevat automatisch de toegepaste filters, bijv. `activiteitenlog_jan_2026-05-08.csv`.
 
 ### Instellingen
 
