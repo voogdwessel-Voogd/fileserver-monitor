@@ -18,9 +18,6 @@
                 <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">
                     <i class="bi bi-clock-history"></i> Activiteitenlog
                 </a>
-                <a class="nav-link {% if request.endpoint == 'live' %}active{% endif %}" href="{{ url_for('live') }}">
-                    <i class="bi bi-activity"></i> Live
-                </a>
                 <a class="nav-link {% if request.endpoint == 'export_page' %}active{% endif %}"
                    href="{{ url_for('export_page') }}">
                     <i class="bi bi-download"></i> Exporteren

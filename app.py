@@ -58,6 +58,15 @@ def index():
                            search={'user': user, 'datum': datum, 'pad': pad})
 
 
+@app.route('/api/poll', methods=['POST'])
+def api_poll():
+    try:
+        monitor._poll()
+        return jsonify({'ok': True})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+
 @app.route('/export')
 def export_page():
     return render_template('export.html')
