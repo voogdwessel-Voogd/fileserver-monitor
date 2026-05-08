@@ -35,7 +35,6 @@ De app heeft vier schermen bereikbaar via de navigatiebalk:
 | Scherm | Omschrijving |
 |---|---|
 | **Activiteitenlog** | Historisch overzicht van bestandstoegang, gegroepeerd per gebruiker, filterbaar op gebruikersnaam, datum en map |
-| **Live** | Realtime weergave van events uit de afgelopen 5 minuten (ververst elke 10 seconden) |
 | **Exporteren** | Download bestandstoegang als CSV met filteropties op gebruiker, datumbereik en map |
 | **Instellingen** | Alle configuratie op één pagina (zie hieronder) |
 
@@ -44,7 +43,7 @@ De app heeft vier schermen bereikbaar via de navigatiebalk:
 - Toont alle gelogde bestandstoegang **gegroepeerd per gebruiker** — elke gebruiker krijgt een eigen sectie met de bestandstoegang gesorteerd op tijdstip (nieuwste eerst)
 - De eerste gebruiker is standaard uitgeklapt; overige gebruikers zijn ingeklapt en kunnen worden opengedraaid
 - **Zoeken** op gebruikersnaam, datum en map/bestandspad — velden zijn combineerbaar
-- **Vernieuwen** — herlaadt de pagina met de meest recente data
+- **Vernieuwen** — triggert direct een poll van het Security Event Log en herlaadt de pagina, zonder te wachten op het volgende poll-interval
 - **Scherm wissen** — verbergt alle bestaande logregels in de weergave zonder ze uit de database te verwijderen. Handig na het instellen van nieuwe filters zodat alleen nieuwe activiteit zichtbaar is.
 
 ### Exporteren
