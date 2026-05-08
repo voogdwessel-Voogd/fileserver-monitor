@@ -146,6 +146,59 @@
 
 <hr class="my-4">
 
+{# ── Procesfilters ────────────────────────────────────────────────────────── #}
+<h6 class="text-muted text-uppercase small fw-semibold mb-2">Proces uitsluitingen</h6>
+<p class="text-muted small mb-3">
+    Processen die overeenkomen met een actief patroon worden <strong>niet gelogd</strong>.
+    Gebruik <code>*</code> als wildcard, bijv. <code>svchost.exe</code> of <code>*update*</code>.
+</p>
+
+<form method="post" action="{{ url_for('add_process_filter') }}" class="row g-2 mb-3" style="max-width: 560px;">
+    <div class="col">
+        <input type="text" name="pattern" class="form-control form-control-sm"
+               placeholder="bijv. svchost.exe of *update*" required>
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-sm btn-primary">
+            <i class="bi bi-plus-lg"></i> Toevoegen
+        </button>
+    </div>
+</form>
+
+{% if process_filters %}
+<table class="table table-sm table-hover align-middle mb-0" style="max-width: 700px;">
+    <thead class="table-dark">
+        <tr><th>Patroon</th><th>Status</th><th></th></tr>
+    </thead>
+    <tbody>
+        {% for f in process_filters %}
+        <tr>
+            <td><code>{{ f.pattern }}</code></td>
+            <td>
+                {% if f.is_active %}<span class="badge bg-success">Actief</span>
+                {% else %}<span class="badge bg-secondary">Inactief</span>{% endif %}
+            </td>
+            <td class="text-end">
+                <form method="post" action="{{ url_for('toggle_process_filter', filter_id=f.id) }}" class="d-inline">
+                    <button class="btn btn-sm btn-outline-secondary">
+                        {% if f.is_active %}Deactiveren{% else %}Activeren{% endif %}
+                    </button>
+                </form>
+                <form method="post" action="{{ url_for('delete_process_filter', filter_id=f.id) }}" class="d-inline"
+                      onsubmit="return confirm('Patroon &quot;{{ f.pattern }}&quot; verwijderen?')">
+                    <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p class="text-muted small">Nog geen uitsluitingen ingesteld.</p>
+{% endif %}
+
+<hr class="my-4">
+
 {# ── Servers ──────────────────────────────────────────────────────────────── #}
 <h6 class="text-muted text-uppercase small fw-semibold mb-2">Servers</h6>
 <p class="text-muted small mb-3">

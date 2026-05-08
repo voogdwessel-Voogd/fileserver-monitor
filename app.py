@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import func
 
 from config import Config
-from db import db, FileAccess, ServerConfig, AccountFilter, WatchPath, AppSetting, get_setting
+from db import db, FileAccess, ServerConfig, AccountFilter, WatchPath, ProcessFilter, AppSetting, get_setting
 from monitor import EventLogMonitor
 
 app = Flask(__name__)
@@ -162,6 +162,7 @@ def settings_page():
         },
         account_filters=AccountFilter.query.all(),
         watch_paths=WatchPath.query.all(),
+        process_filters=ProcessFilter.query.all(),
         servers=ServerConfig.query.all(),
     )
 
@@ -269,6 +270,37 @@ def toggle_account_filter(filter_id):
 @app.route('/accounts/<int:filter_id>/delete', methods=['POST'])
 def delete_account_filter(filter_id):
     f = db.get_or_404(AccountFilter, filter_id)
+    db.session.delete(f)
+    db.session.commit()
+    flash(f'Patroon "{f.pattern}" verwijderd', 'success')
+    return redirect(url_for('settings_page'))
+
+
+# Procesfilters
+
+@app.route('/processes/add', methods=['POST'])
+def add_process_filter():
+    pattern = request.form.get('pattern', '').strip()
+    if not pattern:
+        flash('Patroon is verplicht', 'error')
+    else:
+        db.session.add(ProcessFilter(pattern=pattern))
+        db.session.commit()
+        flash(f'Patroon "{pattern}" toegevoegd', 'success')
+    return redirect(url_for('settings_page'))
+
+
+@app.route('/processes/<int:filter_id>/toggle', methods=['POST'])
+def toggle_process_filter(filter_id):
+    f = db.get_or_404(ProcessFilter, filter_id)
+    f.is_active = not f.is_active
+    db.session.commit()
+    return redirect(url_for('settings_page'))
+
+
+@app.route('/processes/<int:filter_id>/delete', methods=['POST'])
+def delete_process_filter(filter_id):
+    f = db.get_or_404(ProcessFilter, filter_id)
     db.session.delete(f)
     db.session.commit()
     flash(f'Patroon "{f.pattern}" verwijderd', 'success')

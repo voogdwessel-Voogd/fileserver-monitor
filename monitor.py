@@ -141,10 +141,11 @@ class EventLogMonitor:
         vol_map = _build_volume_map()
 
         with self.app.app_context():
-            from db import WatchPath
+            from db import WatchPath, ProcessFilter
             patterns = [f.pattern for f in AccountFilter.query.filter_by(is_active=True).all()]
             watch_paths = [p.path.rstrip('\\').lower()
                            for p in WatchPath.query.filter_by(is_active=True).all()]
+            excluded_processes = [f.pattern for f in ProcessFilter.query.filter_by(is_active=True).all()]
 
             new_entries = []
             for ev in events:
@@ -164,6 +165,10 @@ class EventLogMonitor:
                     continue
 
                 if watch_paths and not any(obj.lower().startswith(p) for p in watch_paths):
+                    continue
+
+                proc = (ev.get('PN') or '').replace('/', '\\').split('\\')[-1]
+                if excluded_processes and _matches_account(proc, excluded_processes):
                     continue
 
                 ts_raw = (ev.get('TC') or '')[:19]  # YYYY-MM-DDTHH:MM:SS
