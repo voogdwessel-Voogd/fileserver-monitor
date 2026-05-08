@@ -71,6 +71,14 @@ def settings_page():
     )
 
 
+@app.route('/settings/clear-log', methods=['POST'])
+def clear_log():
+    deleted = FileAccess.query.delete()
+    db.session.commit()
+    flash(f'Activiteitenlog gewist ({deleted} regels verwijderd)', 'success')
+    return redirect(url_for('settings_page'))
+
+
 @app.route('/settings/update', methods=['POST'])
 def update_settings():
     errors = []
