@@ -21,7 +21,6 @@ def basename_filter(path):
 
 @app.route('/')
 def index():
-    page = request.args.get('page', 1, type=int)
     user = request.args.get('user', '').strip()
     datum = request.args.get('datum', '').strip()
     pad = request.args.get('pad', '').strip()
@@ -49,9 +48,11 @@ def index():
     if pad:
         query = query.filter(FileAccess.file_path.ilike(f'%{pad}%'))
 
-    entries = query.order_by(FileAccess.timestamp.desc()).paginate(page=page, per_page=50)
+    total = query.count()
+    entries = (query.order_by(FileAccess.username, FileAccess.timestamp.desc())
+               .limit(1000).all())
 
-    return render_template('index.html', entries=entries,
+    return render_template('index.html', entries=entries, total=total,
                            search={'user': user, 'datum': datum, 'pad': pad})
 
 

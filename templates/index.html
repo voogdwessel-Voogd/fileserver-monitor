@@ -3,7 +3,12 @@
 
 <div class="d-flex align-items-center mb-3">
     <h5 class="mb-0"><i class="bi bi-clock-history me-1"></i>Activiteitenlog</h5>
-    <span class="ms-3 text-muted small">{{ entries.total }} resultaten</span>
+    <span class="ms-3 text-muted small">
+        {{ entries | length }} van {{ total }} resultaten
+        {% if entries | length < total %}
+            <span class="text-warning">(max. 1000 getoond)</span>
+        {% endif %}
+    </span>
     <form method="post" action="{{ url_for('clear_view') }}" class="ms-auto"
           onsubmit="return confirm('Scherm wissen? Bestaande logregels blijven in de database, maar zijn niet meer zichtbaar.')">
         <button type="submit" class="btn btn-sm btn-outline-secondary">
@@ -37,74 +42,68 @@
     </div>
 </form>
 
-<div class="table-responsive">
-    <table class="table table-sm table-hover table-striped align-middle">
-        <thead class="table-dark">
-            <tr>
-                <th class="text-nowrap">Tijdstip</th>
-                <th>Gebruiker</th>
-                <th>Bestand</th>
-                <th>Proces</th>
-                <th>Actie</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for entry in entries.items %}
-            <tr>
-                <td class="text-nowrap small text-muted">
-                    {{ entry.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
-                </td>
-                <td>{{ entry.username }}</td>
-                <td class="text-truncate file-path" title="{{ entry.file_path }}">
-                    {{ entry.file_path }}
-                </td>
-                <td class="text-truncate small text-muted" title="{{ entry.process_name }}">
-                    {{ entry.process_name | basename }}
-                </td>
-                <td>
-                    {% if entry.action == 'read' %}
-                        <span class="badge bg-info text-dark">Lezen</span>
-                    {% elif entry.action == 'write' %}
-                        <span class="badge bg-warning text-dark">Schrijven</span>
-                    {% elif entry.action == 'delete' %}
-                        <span class="badge bg-danger">Verwijderen</span>
-                    {% else %}
-                        <span class="badge bg-secondary">Overig</span>
-                    {% endif %}
-                </td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="5" class="text-center text-muted py-4">
-                    <i class="bi bi-inbox fs-4 d-block mb-1"></i>
-                    Geen activiteit gevonden
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+{% if entries %}
+<div class="accordion" id="logAccordion">
+    {% for username, user_entries in entries | groupby('username') %}
+    {% set uid = 'u' ~ loop.index %}
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button {% if not loop.first %}collapsed{% endif %}"
+                    type="button" data-bs-toggle="collapse"
+                    data-bs-target="#{{ uid }}">
+                <i class="bi bi-person me-2"></i>
+                <strong>{{ username }}</strong>
+                <span class="badge bg-secondary ms-2">{{ user_entries | list | length }}</span>
+            </button>
+        </h2>
+        <div id="{{ uid }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}">
+            <div class="accordion-body p-0">
+                <table class="table table-sm table-hover table-striped mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="text-nowrap ps-3">Tijdstip</th>
+                            <th>Bestand</th>
+                            <th>Proces</th>
+                            <th>Actie</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in user_entries %}
+                        <tr>
+                            <td class="text-nowrap small text-muted ps-3">
+                                {{ entry.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
+                            </td>
+                            <td class="text-truncate file-path" title="{{ entry.file_path }}">
+                                {{ entry.file_path }}
+                            </td>
+                            <td class="text-truncate small text-muted" title="{{ entry.process_name }}">
+                                {{ entry.process_name | basename }}
+                            </td>
+                            <td>
+                                {% if entry.action == 'read' %}
+                                    <span class="badge bg-info text-dark">Lezen</span>
+                                {% elif entry.action == 'write' %}
+                                    <span class="badge bg-warning text-dark">Schrijven</span>
+                                {% elif entry.action == 'delete' %}
+                                    <span class="badge bg-danger">Verwijderen</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Overig</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
 </div>
-
-{% if entries.pages > 1 %}
-<nav>
-    <ul class="pagination pagination-sm">
-        {% if entries.has_prev %}
-        <li class="page-item">
-            <a class="page-link" href="{{ url_for('index', page=entries.prev_num,
-                user=search.user, datum=search.datum, pad=search.pad) }}">Vorige</a>
-        </li>
-        {% endif %}
-        <li class="page-item disabled">
-            <span class="page-link">{{ entries.page }} / {{ entries.pages }}</span>
-        </li>
-        {% if entries.has_next %}
-        <li class="page-item">
-            <a class="page-link" href="{{ url_for('index', page=entries.next_num,
-                user=search.user, datum=search.datum, pad=search.pad) }}">Volgende</a>
-        </li>
-        {% endif %}
-    </ul>
-</nav>
+{% else %}
+<div class="text-center text-muted py-5">
+    <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+    Geen activiteit gevonden
+</div>
 {% endif %}
 
 {% endblock %}
