@@ -28,6 +28,15 @@ def get_setting(key, default=None):
     return s.value if s else default
 
 
+class WatchPath(db.Model):
+    __tablename__ = 'watch_path'
+
+    id = db.Column(db.Integer, primary_key=True)
+    path = db.Column(db.String(1024), nullable=False)  # e.g. D:\Data\
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
 class AccountFilter(db.Model):
     __tablename__ = 'account_filter'
 

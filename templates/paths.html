@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<h5 class="mb-3"><i class="bi bi-folder-check me-1"></i>Te monitoren mappen</h5>
+
+<div class="alert alert-info py-2 small mb-4" style="max-width: 700px;">
+    <i class="bi bi-info-circle me-1"></i>
+    Als er <strong>geen actieve mappen</strong> zijn, worden events van alle paden bijgehouden.
+    Voeg mappen toe om alleen bestanden binnen die mappen te monitoren.
+</div>
+
+<div class="card mb-4" style="max-width: 650px;">
+    <div class="card-header">Map toevoegen</div>
+    <div class="card-body">
+        <form method="post" action="{{ url_for('add_path') }}" class="row g-2">
+            <div class="col-md-9">
+                <input type="text" name="path" class="form-control form-control-sm"
+                       placeholder="bijv. D:\Data\ of D:\Data\Gedeeld" required>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-sm btn-primary">
+                    <i class="bi bi-plus-lg"></i> Toevoegen
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if paths %}
+<table class="table table-sm table-hover align-middle" style="max-width: 700px;">
+    <thead class="table-dark">
+        <tr>
+            <th>Pad</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for p in paths %}
+        <tr>
+            <td><code>{{ p.path }}</code></td>
+            <td>
+                {% if p.is_active %}
+                    <span class="badge bg-success">Actief</span>
+                {% else %}
+                    <span class="badge bg-secondary">Inactief</span>
+                {% endif %}
+            </td>
+            <td class="text-end">
+                <form method="post" action="{{ url_for('toggle_path', path_id=p.id) }}" class="d-inline">
+                    <button class="btn btn-sm btn-outline-secondary">
+                        {% if p.is_active %}Deactiveren{% else %}Activeren{% endif %}
+                    </button>
+                </form>
+                <form method="post" action="{{ url_for('delete_path', path_id=p.id) }}"
+                      class="d-inline"
+                      onsubmit="return confirm('Map &quot;{{ p.path }}&quot; verwijderen?')">
+                    <button class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p class="text-muted small">Nog geen mappen ingesteld — alle paden worden gemonitord.</p>
+{% endif %}
+
+{% endblock %}

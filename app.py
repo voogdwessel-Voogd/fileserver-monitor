@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from datetime import datetime, timedelta
 
 from config import Config
-from db import db, FileAccess, ServerConfig, AccountFilter, AppSetting, get_setting
+from db import db, FileAccess, ServerConfig, AccountFilter, WatchPath, AppSetting, get_setting
 from monitor import EventLogMonitor
 
 app = Flask(__name__)
@@ -136,6 +136,42 @@ def update_settings():
         db.session.commit()
         flash('Instellingen opgeslagen', 'success')
     return redirect(url_for('settings_page'))
+
+
+@app.route('/paths')
+def paths():
+    all_paths = WatchPath.query.all()
+    return render_template('paths.html', paths=all_paths)
+
+
+@app.route('/paths/add', methods=['POST'])
+def add_path():
+    path = request.form.get('path', '').strip()
+    if not path:
+        flash('Pad is verplicht', 'error')
+        return redirect(url_for('paths'))
+    db.session.add(WatchPath(path=path))
+    db.session.commit()
+    flash(f'Map "{path}" toegevoegd', 'success')
+    return redirect(url_for('paths'))
+
+
+@app.route('/paths/<int:path_id>/toggle', methods=['POST'])
+def toggle_path(path_id):
+    p = db.get_or_404(WatchPath, path_id)
+    p.is_active = not p.is_active
+    db.session.commit()
+    return redirect(url_for('paths'))
+
+
+@app.route('/paths/<int:path_id>/delete', methods=['POST'])
+def delete_path(path_id):
+    p = db.get_or_404(WatchPath, path_id)
+    label = p.path
+    db.session.delete(p)
+    db.session.commit()
+    flash(f'Map "{label}" verwijderd', 'success')
+    return redirect(url_for('paths'))
 
 
 @app.route('/accounts')

@@ -118,7 +118,10 @@ class EventLogMonitor:
             return
 
         with self.app.app_context():
+            from db import WatchPath
             patterns = [f.pattern for f in AccountFilter.query.filter_by(is_active=True).all()]
+            watch_paths = [p.path.rstrip('\\').lower()
+                           for p in WatchPath.query.filter_by(is_active=True).all()]
 
             new_entries = []
             for ev in events:
@@ -132,6 +135,9 @@ class EventLogMonitor:
                 username = f'{domain}\\{user}' if domain else user
 
                 if patterns and not _matches_account(username, patterns):
+                    continue
+
+                if watch_paths and not any(obj.lower().startswith(p) for p in watch_paths):
                     continue
 
                 ts_raw = (ev.get('TC') or '')[:19]  # YYYY-MM-DDTHH:MM:SS
