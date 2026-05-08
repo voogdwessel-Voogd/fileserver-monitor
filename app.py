@@ -61,19 +61,23 @@ def index():
 @app.route('/export')
 def export_csv():
     user = request.args.get('user', '').strip()
-    datum = request.args.get('datum', '').strip()
+    datum_van = request.args.get('datum_van', '').strip()
+    datum_tot = request.args.get('datum_tot', '').strip()
     pad = request.args.get('pad', '').strip()
 
     query = FileAccess.query
 
     if user:
         query = query.filter(FileAccess.username.ilike(f'%{user}%'))
-    if datum:
+    if datum_van:
         try:
-            day = datetime.strptime(datum, '%Y-%m-%d')
+            query = query.filter(FileAccess.timestamp >= datetime.strptime(datum_van, '%Y-%m-%d'))
+        except ValueError:
+            pass
+    if datum_tot:
+        try:
             query = query.filter(
-                FileAccess.timestamp >= day,
-                FileAccess.timestamp < day + timedelta(days=1),
+                FileAccess.timestamp < datetime.strptime(datum_tot, '%Y-%m-%d') + timedelta(days=1)
             )
         except ValueError:
             pass
@@ -97,8 +101,10 @@ def export_csv():
     filename = 'activiteitenlog'
     if user:
         filename += f'_{user.replace("\\", "-")}'
-    if datum:
-        filename += f'_{datum}'
+    if datum_van:
+        filename += f'_{datum_van}'
+    if datum_tot and datum_tot != datum_van:
+        filename += f'_tm_{datum_tot}'
     filename += '.csv'
 
     return Response(
