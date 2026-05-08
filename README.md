@@ -41,6 +41,7 @@ De app heeft vier schermen bereikbaar via de navigatiebalk:
 ### Activiteitenlog
 
 - Toont alle gelogde bestandstoegang, gesorteerd op tijdstip (nieuwste eerst)
+- **Zoeken** op gebruikersnaam, datum en map/bestandspad — velden zijn combineerbaar
 - **Scherm wissen** — verbergt alle bestaande logregels in de weergave zonder ze uit de database te verwijderen. Handig na het instellen van nieuwe filters zodat alleen nieuwe activiteit zichtbaar is.
 
 ### Instellingen
